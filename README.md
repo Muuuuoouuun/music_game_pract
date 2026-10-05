@@ -4,6 +4,10 @@
 실시간으로 판정(Perfect / Great / Good / Miss)하고 점수·콤보·랭크로 보상합니다.
 YouTube/음원이나 악보를 넣으면 플레이 가능한 차트로 바꾸고, 악보대로 제대로 쳤는지 채점합니다.
 
+## 앱 (MVP)
+
+실제 앱은 [`app/`](app/README.md)에 있습니다. `cd app && npm install && npm run dev` 후 Chrome/Edge로 `http://localhost:5173` 을 열고, 전자피아노를 USB로 연결하세요.
+
 ## 문서
 
 | 문서 | 내용 |
