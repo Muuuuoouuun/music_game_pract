@@ -27,14 +27,29 @@
 
 - 오디오 → 차트 로직은 형제 프로젝트 **Music_band / band2sheet**의 음원 추출·채보 파이프라인을 재사용 대상으로 본다 → [`research/02-music-band-analysis.md`](research/02-music-band-analysis.md)
 - 악보를 넣으면 "그 악보대로 제대로 쳤는지"를 음 단위로 추적: 맞은 음 / 틀린 음 / 빠름·느림(ms) / 마디별 정확도.
-- YouTube 링크 기능은 저작권·약관 이슈가 있으므로, MVP에서는 "본인이 권리를 가진 음원" 업로드 + 퍼블릭 도메인/라이선스 카탈로그 중심으로 설계하고 링크 기능은 실험 기능으로 둔다.
+- YouTube 링크 기능은 저작권·약관 이슈가 있고(YouTube 약관상 무단 다운로드 금지, 채보물은 2차적저작물),
+  2025~26년 PO Token/SABR 도입으로 서버 다운로드도 불안정하다. MVP는 **사용자 음원 업로드(개인용) + 퍼블릭 도메인 카탈로그(PDMX 약 25만 곡 MusicXML) + 라이선스 곡**으로 시작하고 링크 기능은 실험 기능으로 둔다.
+- 오디오 채보는 **솔로 피아노 커버 → 분리 없이 피아노 채보 모델** 경로부터 지원하고, 밴드 믹스 채보는 "베타·편집 필요"로 표시한다 (근거: [research/02 §6](research/02-music-band-analysis.md)).
+
+## 2-1. 조사로 정한 초기 기술 결정
+
+| 항목 | 결정 | 이유 |
+|---|---|---|
+| 플랫폼 | 웹(TypeScript + Vite + PixiJS/Canvas) → 데스크톱은 **Electron** | Web MIDI는 Chrome/Edge/Firefox만 지원, Safari·iOS 미지원. Tauri는 macOS에서 WKWebView라 MIDI 플러그인 필요 |
+| 입력 | **MIDI 우선**, 마이크는 Phase 2에 "악보 기준 대조" 방식으로 | 다성 실시간 음 인식은 지연 64~380ms라 블라인드 채보보다 악보 대조가 현실적 |
+| 지연 보정 | 오디오 오프셋 / 화면 오프셋 / 기기별 프로필을 따로 저장 | USB MIDI 1~3ms, BLE MIDI 10~20ms+지터, 블루투스 헤드폰 150~300ms |
+| 악보 표시 | OSMD(OpenSheetMusicDisplay) 또는 VexFlow | permissive 라이선스, MusicXML 직접 렌더 |
+| 변환 백엔드 | FastAPI GPU 워커: 분리(htdemucs / BS-RoFormer) → 피아노 채보(Kong `piano_hr`) 또는 멜로디(basic-pitch) → 박자(Beat This!) → music21 | band2sheet 모듈 재사용 |
+| 라이선스 주의 | GPL/AGPL(Neothesia, PianoBooster, Audiveris, Essentia.js 등)은 코드 직접 포함 금지·별도 프로세스로 격리, 비상업 데이터·가중치(MAESTRO, madmom 모델) 사용 금지 | 상용 서비스 전제 |
 
 ## 3. 게임 모드
 
 ### A. Rhythm Play (메인)
 - 노트가 내려오고 실제 건반을 누름 → `Perfect / Great / Good / Miss` (+ 틀린 건반 `Wrong`)
 - Combo, Score, Accuracy, Grade(S/A/B/C/D), Full Combo, Perfect Play
-- 판정 기준(목업 공통): Perfect ≤45ms, Great ≤90ms, Good ≤140ms, 그 외 Miss
+- 판정 기준: 목업은 입문자용으로 넉넉하게 Perfect ≤45ms / Great ≤90ms / Good ≤140ms.
+  실제 구현 초기값은 조사 결과를 따라 **Perfect ±35 / Great ±70 / Good ±120 / Miss >±180ms**로 시작하고,
+  화음은 60~80ms 안의 타건을 한 묶음으로 판정 (근거: [research/01 §3](research/01-market-and-oss.md))
 
 ### B. Learn Mode
 곡을 쪼개서 단계적으로 연습 (예: Für Elise)
