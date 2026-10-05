@@ -19,9 +19,10 @@ YouTube/음원이나 악보를 넣으면 플레이 가능한 차트로 바꾸고
 
 | 시안 | 파일 | 방향 |
 |---|---|---|
-| A. NEON STAGE | [mockups/a-neon-stage.html](mockups/a-neon-stage.html) | 아케이드 리듬게임형 — 원근 노트 하이웨이, 피버, 화려한 판정 이펙트 |
-| B. SCORE FLOW | [mockups/b-score-flow.html](mockups/b-score-flow.html) | 악보 싱크·학습형 — 대보표 위 실시간 채점, Wait 모드, 구간 반복, 선생님 대시보드 |
-| C. PIANO QUEST | [mockups/c-piano-quest.html](mockups/c-piano-quest.html) | 키즈·게이미피케이션형 — 월드맵, 마스코트, 색깔 건반, 적응형 난이도 |
+| A. NEON STAGE | [mockups/a-neon-stage.html](mockups/a-neon-stage.html) · [미리보기](https://claude.ai/artifact/3GSUyhSJ3anmuw7i4PhSsw) | 아케이드 리듬게임형 — 원근 노트 하이웨이, 피버, 화려한 판정 이펙트 |
+| B. SCORE FLOW | [mockups/b-score-flow.html](mockups/b-score-flow.html) · [미리보기](https://claude.ai/artifact/8He3aNXJqQdPpVb19FKnGm) | 악보 싱크·학습형 — 대보표 위 실시간 채점, Wait 모드, 구간 반복, 선생님 대시보드 |
+| C. PIANO QUEST | [mockups/c-piano-quest.html](mockups/c-piano-quest.html) · [미리보기](https://claude.ai/artifact/Dg93R9pn9Wkvxovp5Wu47C) | 키즈·게이미피케이션형 — 월드맵, 마스코트, 색깔 건반, 적응형 난이도 |
 
+> 미리보기 링크는 비공개 아티팩트라 다른 사람이 보려면 페이지의 Share 메뉴에서 공유해야 합니다.
 > 목업 HTML은 아티팩트 게시 형식(조각 HTML, `<html>/<head>` 태그 없음)으로 작성되어 있습니다.
 > 로컬에서는 파일을 그대로 브라우저로 열거나 `npx serve mockups`로 띄우면 됩니다.

@@ -1,0 +1,1668 @@
+<title>Score Flow 연습실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Music&display=swap">
+<style>
+/* Layout: sticky top bar + one screen at a time. Play = stage column (engraved grand staff over waterfall over keys)
+   beside a 296px practice rail; the rail drops under the stage below 1000px. */
+:root{
+  --paper:#EDF0F3;          /* cool practice-room wall */
+  --sheet:#FBFCFD;          /* engraved paper */
+  --sheet-2:#F2F4F7;
+  --ink:#111722;            /* engraving ink */
+  --ink-2:#465163;
+  --ink-3:#768091;
+  --staff:#7E8898;
+  --rule:#D3D9E1;
+  --rule-2:#E5E9EE;
+  --accent:#976508;         /* metronome brass */
+  --accent-2:#7A5106;
+  --on-accent:#FFFDF7;
+  --accent-soft:rgba(151,101,8,.11);
+  --focus:#2C55AE;
+  --rh:#2C55AE;             /* right hand: ink blue */
+  --lh:#94406B;             /* left hand: mulberry */
+  --perfect:#0A7A5A; --great:#3E9440; --good:#8E9A16; --miss:#C4362E;
+  --early:#2F6CC0; --late:#C27420;
+  --wf-bg:#E8ECF0; --lane:rgba(17,23,34,.045);
+  --key-w:#FDFDFE; --key-b:#1A202B; --key-wl:#6B7585; --key-bl:#AEB7C4;
+  --on-note:#FFFFFF;
+  --shadow:0 1px 2px rgba(17,23,34,.05),0 8px 24px rgba(17,23,34,.05);
+  --f-display:"Hahmlet","Noto Serif KR","Nanum Myeongjo",Georgia,serif;
+  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --f-music:"Noto Music","Bravura Text",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1015;--sheet:#151A21;--sheet-2:#1B2129;--ink:#E6EAF0;--ink-2:#A7B0BD;--ink-3:#707B8A;--staff:#5B6571;--rule:#2A313B;--rule-2:#20262E;
+  --accent:#E0AE4C;--accent-2:#EDC271;--on-accent:#1A1306;--accent-soft:rgba(224,174,76,.14);--focus:#86A9F0;
+  --rh:#7FA4EE;--lh:#DE8DB5;--perfect:#3DCB97;--great:#8DCB5D;--good:#CFC75B;--miss:#F2695E;--early:#6FA2EE;--late:#EBA154;
+  --wf-bg:#0F1318;--lane:rgba(230,234,240,.035);--key-w:#D8DDE4;--key-b:#0A0D11;--key-wl:#586272;--key-bl:#7D8796;--on-note:#0D1015;
+  --shadow:0 1px 0 rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0D1015;--sheet:#151A21;--sheet-2:#1B2129;--ink:#E6EAF0;--ink-2:#A7B0BD;--ink-3:#707B8A;--staff:#5B6571;--rule:#2A313B;--rule-2:#20262E;
+  --accent:#E0AE4C;--accent-2:#EDC271;--on-accent:#1A1306;--accent-soft:rgba(224,174,76,.14);--focus:#86A9F0;
+  --rh:#7FA4EE;--lh:#DE8DB5;--perfect:#3DCB97;--great:#8DCB5D;--good:#CFC75B;--miss:#F2695E;--early:#6FA2EE;--late:#EBA154;
+  --wf-bg:#0F1318;--lane:rgba(230,234,240,.035);--key-w:#D8DDE4;--key-b:#0A0D11;--key-wl:#586272;--key-bl:#7D8796;--on-note:#0D1015;
+  --shadow:0 1px 0 rgba(0,0,0,.35);color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 14px/1.55 var(--f-ui);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+ul,ol{margin:0;padding:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0;margin:-1px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---------- shell ---------- */
+.app{min-height:100%;display:flex;flex-direction:column}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.topbar-in{display:flex;align-items:center;gap:20px;max-width:1440px;margin:0 auto;padding-inline:24px;height:52px}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink);font:700 17px/1 var(--f-display);letter-spacing:-.01em;flex:none}
+.brand svg{width:28px;height:20px}
+.nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;align-self:stretch;min-width:0}
+.nav::-webkit-scrollbar{display:none}
+.nav button{appearance:none;border:0;background:none;padding:0 12px;font:500 14px var(--f-ui);color:var(--ink-2);cursor:pointer;white-space:nowrap;position:relative}
+.nav button:hover{color:var(--ink)}
+.nav button[aria-current="page"]{color:var(--ink);font-weight:600}
+.nav button[aria-current="page"]::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:var(--accent);border-radius:2px 2px 0 0}
+.nav button:focus-visible{outline-offset:-5px}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
+.dev{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 10px;border:1px solid var(--rule);border-radius:999px;font:500 12px var(--f-ui);color:var(--ink-2);background:var(--sheet);min-width:0;max-width:240px}
+.dev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.dev.on i{background:var(--perfect);box-shadow:0 0 0 3px color-mix(in srgb,var(--perfect) 22%,transparent)}
+.icon-btn{appearance:none;width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--rule);border-radius:8px;background:var(--sheet);color:var(--ink-2);cursor:pointer;flex:none}
+.icon-btn svg{width:16px;height:16px}
+main{flex:1;width:100%;max-width:1440px;margin:0 auto;padding-block:16px 40px;padding-inline:24px}
+@media (max-width:760px){
+  .topbar-in{flex-wrap:wrap;height:auto;padding-block:8px 0;padding-inline:16px;gap:6px 10px}
+  .nav{order:3;width:100%;height:40px}
+  .nav button{padding:0 9px}
+  .nav button[aria-current="page"]::after{left:9px;right:9px}
+  .dev{max-width:150px}
+  main{padding-block:12px 32px;padding-inline:16px}
+}
+
+/* ---------- controls ---------- */
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border:1px solid var(--rule);border-radius:7px;background:var(--sheet);color:var(--ink);font:500 13.5px/1 var(--f-ui);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--ink-3)}
+.btn svg{width:13px;height:13px;flex:none}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.pri:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.sm{height:28px;padding:0 10px;font-size:12.5px}
+.btn.quiet{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.quiet:hover{color:var(--ink);background:var(--sheet-2)}
+.btn:disabled{opacity:.5;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;padding:2px;background:var(--sheet-2);gap:2px;flex-wrap:wrap}
+.seg input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.seg label{padding:4px 10px;border-radius:6px;font:500 12.5px/1.4 var(--f-ui);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.seg input:checked+label{background:var(--sheet);color:var(--ink);box-shadow:0 0 0 1px var(--rule),0 1px 2px rgba(17,23,34,.06)}
+.seg input:focus-visible+label{outline:2px solid var(--focus);outline-offset:1px}
+.sw{display:flex;align-items:flex-start;gap:10px;cursor:pointer;position:relative}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw-t{flex:none;width:34px;height:20px;border-radius:999px;background:var(--rule);position:relative;transition:background .15s;margin-top:1px}
+.sw-t::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--sheet);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.sw input:checked+.sw-t{background:var(--accent)}
+.sw input:checked+.sw-t::after{transform:translateX(14px)}
+.sw input:focus-visible+.sw-t{outline:2px solid var(--focus);outline-offset:2px}
+.sw-x{font:500 13px/1.35 var(--f-ui)}
+.sw-x small{display:block;font-size:12px;color:var(--ink-3);font-weight:400;margin-top:1px}
+.sel,.inp{height:32px;border:1px solid var(--rule);border-radius:6px;background:var(--sheet);padding:0 8px;font:500 13px var(--f-ui);min-width:0}
+.sel.sm{height:28px;font:500 12.5px var(--f-mono)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;border:1px solid var(--rule);font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--sheet);white-space:nowrap}
+.ex{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:4px;border:1px dashed var(--accent);color:var(--accent);font:600 11.5px var(--f-ui);white-space:nowrap}
+.h1{font:700 28px/1.2 var(--f-display);letter-spacing:-.015em}
+.lede{color:var(--ink-2);max-width:62ch;margin-top:6px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sec-h h2{font:600 15px var(--f-ui)}
+@media (max-width:560px){.h1{font-size:24px}}
+
+/* ---------- play ---------- */
+.play{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:16px;align-items:start}
+@media (max-width:1000px){.play{grid-template-columns:minmax(0,1fr)}}
+.stage{min-width:0;background:var(--sheet);border:1px solid var(--rule);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+.stage-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:9px 14px;border-bottom:1px solid var(--rule-2)}
+.song-id{display:flex;align-items:baseline;gap:4px 10px;min-width:0;flex-wrap:wrap}
+.song-id h1{font:700 20px/1.2 var(--f-display);letter-spacing:-.01em}
+.song-id .by{color:var(--ink-3);font-size:12.5px}
+.status{display:inline-flex;align-items:center;gap:7px;font:500 12.5px var(--f-ui);color:var(--ink-2);padding:3px 10px;border-radius:999px;background:var(--sheet-2);min-width:0}
+.status i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.status[data-k=demo] i{background:var(--accent);animation:blink 1.6s infinite}
+.status[data-k=live] i{background:var(--perfect)}
+.status[data-k=wait] i,.status[data-k=count] i{background:var(--accent)}
+@keyframes blink{50%{opacity:.25}}
+.stage-act{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.hudbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:6px 14px 7px;border-bottom:1px solid var(--rule-2)}
+.hud{display:flex;gap:24px;align-items:flex-end;min-width:0}
+.hud-i{display:flex;flex-direction:column;gap:1px;position:relative;min-width:0}
+.hud-k{font:500 11px var(--f-ui);color:var(--ink-3);letter-spacing:.02em}
+.hud-v{font:500 19px/1.15 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.hud-i.combo .hud-v{color:var(--accent)}
+.combo-ul{position:absolute;left:0;right:0;bottom:-4px;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;border-radius:2px}
+.combo-ul.run{animation:ul .45s ease-out}
+@keyframes ul{0%{transform:scaleX(0);opacity:1}55%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+@media (max-width:560px){.hud{display:grid;grid-template-columns:1.35fr 1fr .8fr .8fr;gap:8px;width:100%}.hud-v{font-size:16px}}
+.view-area{position:relative}
+.sheet-wrap{position:relative;overflow-y:auto;overflow-x:hidden;background:var(--sheet);scrollbar-width:thin}
+.sheet-inner{position:relative}
+.sh{display:block;overflow:visible}
+.fall{position:relative;height:clamp(130px,calc(100dvh - 650px),240px);border-top:1px solid var(--rule-2);background:var(--wf-bg)}
+.stage[data-view=fall] .fall{height:clamp(260px,calc(100dvh - 330px),460px);border-top:0}
+.stage[data-view=sheet] .fall{display:none}
+.stage[data-view=fall] .sheet-wrap{display:none}
+@media (max-width:560px){.fall{height:150px}.stage[data-view=fall] .fall{height:330px}}
+.fall canvas{display:block;width:100%;height:100%}
+.keys{position:relative;height:88px;background:var(--rule);touch-action:none;user-select:none;-webkit-user-select:none;border-top:1px solid var(--rule)}
+@media (max-width:560px){.keys{height:80px}}
+.k{position:absolute;top:0;cursor:pointer}
+.kw{bottom:0;background:var(--key-w);border-right:1px solid var(--rule);border-radius:0 0 5px 5px;box-shadow:inset 0 -3px 0 var(--rule-2);transition:background .08s}
+.kb{height:58%;background:var(--key-b);border-radius:0 0 4px 4px;z-index:2;box-shadow:inset 0 -3px 0 rgba(255,255,255,.08)}
+.k .kl{position:absolute;left:0;right:0;bottom:7px;text-align:center;font:600 11px var(--f-mono);color:var(--key-wl);pointer-events:none}
+.kb .kl{bottom:5px;font-size:9.5px;color:var(--key-bl)}
+.k .kn{position:absolute;left:0;right:0;bottom:22px;text-align:center;font:500 9px var(--f-mono);color:var(--ink-3);pointer-events:none}
+.kw.down{background:color-mix(in oklab,var(--accent) 22%,var(--key-w));box-shadow:inset 0 -1px 0 var(--rule-2)}
+.kb.down{background:color-mix(in oklab,var(--accent) 55%,var(--key-b))}
+.k.target{box-shadow:inset 0 0 0 2px var(--accent)}
+.k.target::before{content:"";position:absolute;left:50%;top:8px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)}
+.k.fx::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 2px var(--fx),0 -8px 18px -4px var(--fx);opacity:0;animation:keyfx .42s ease-out;pointer-events:none}
+.k.fx-perfect,.k.fx-ok{--fx:var(--perfect)}.k.fx-great{--fx:var(--great)}.k.fx-good,.k.fx-okw{--fx:var(--good)}.k.fx-wrong{--fx:var(--miss)}
+.kw.fx-wrong{background:color-mix(in oklab,var(--miss) 32%,var(--key-w))}
+.kb.fx-wrong{background:color-mix(in oklab,var(--miss) 60%,var(--key-b))}
+@keyframes keyfx{0%{opacity:1}100%{opacity:0}}
+.countin{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:6}
+.countin span{display:grid;place-items:center;min-width:88px;height:88px;padding:0 20px;border-radius:999px;background:color-mix(in srgb,var(--sheet) 92%,transparent);border:1.5px solid var(--accent);font:700 42px/1 var(--f-display);color:var(--ink);box-shadow:var(--shadow)}
+.countin span.word{font-size:20px}
+.countin span.tick{animation:tick .45s ease-out}
+@keyframes tick{from{transform:scale(1.1)}to{transform:none}}
+.pill{position:absolute;z-index:5;left:0;top:0;transform:translate(-50%,0);display:inline-flex;align-items:baseline;gap:6px;padding:3px 10px;border-radius:999px;background:var(--sheet);border:1px solid var(--pc,var(--rule));color:var(--pc,var(--ink));font:600 12.5px/1.25 var(--f-ui);white-space:nowrap;pointer-events:none;opacity:0;box-shadow:0 2px 10px rgba(17,23,34,.08)}
+.pill span{font:500 11px var(--f-mono);color:var(--ink-2)}
+.pill.j-perfect,.pill.j-ok{--pc:var(--perfect)}.pill.j-great{--pc:var(--great)}.pill.j-good,.pill.j-okw{--pc:var(--good)}.pill.j-miss,.pill.j-wrong{--pc:var(--miss)}
+.pill.j-loop{--pc:var(--accent)}
+.pill.show{animation:pill .95s ease-out forwards}
+@keyframes pill{0%{opacity:0;transform:translate(-50%,5px) scale(.9)}12%{opacity:1;transform:translate(-50%,0) scale(1.05)}24%{transform:translate(-50%,0) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-5px)}}
+.coachbar{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--rule-2);background:var(--sheet);min-height:44px}
+.coachbar svg{flex:none;width:18px;height:18px;color:var(--accent);margin-top:2px}
+.coachbar b{font:600 12px/1.6 var(--f-ui);color:var(--accent);white-space:nowrap}
+.coachbar p{font-size:13.5px;line-height:1.55;color:var(--ink);min-width:0}
+.coachbar p.flash{animation:fadein .45s ease-out}
+@keyframes fadein{from{opacity:.2;transform:translateY(2px)}to{opacity:1;transform:none}}
+.rail{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;position:sticky;top:68px;max-height:calc(100dvh - 84px);overflow:auto;box-shadow:var(--shadow)}
+@media (max-width:1000px){.rail{position:static;max-height:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
+.rail-sec{padding:14px 16px;border-bottom:1px solid var(--rule-2);display:flex;flex-direction:column;gap:12px;min-width:0}
+.rail-sec:last-child{border-bottom:0}
+.rail-h{font:600 12px var(--f-ui);color:var(--ink-3);letter-spacing:.04em}
+.jl{list-style:none;display:flex;flex-direction:column;gap:6px}
+.jl li{display:grid;grid-template-columns:88px minmax(0,1fr) 30px;align-items:center;gap:8px;font-size:12.5px}
+.jl .jn{display:flex;align-items:center;gap:7px;color:var(--ink-2);white-space:nowrap}
+.jl .jn i{width:8px;height:8px;border-radius:2px;background:var(--c)}
+.jl .jb{height:5px;background:var(--rule-2);border-radius:3px;overflow:hidden}
+.jl .jb i{display:block;height:100%;width:0;background:var(--c);transition:width .25s}
+.jl .jc{text-align:right;font:500 12.5px var(--f-mono)}
+.ctl{display:flex;flex-direction:column;gap:7px}
+.ctl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ctl-l{font:500 13px var(--f-ui)}
+.ab{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);padding-left:44px}
+.off-v{font:500 12.5px var(--f-mono);color:var(--ink-2)}
+.keyhelp p{font-size:12.5px;color:var(--ink-2)}
+.keyhelp kbd{display:inline-block;min-width:18px;padding:0 4px;margin:1px 1px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;font:500 11px/1.5 var(--f-mono);text-align:center;background:var(--sheet-2);color:var(--ink)}
+
+/* ---------- sheet (svg) ---------- */
+.sh .staff{stroke:var(--staff);stroke-width:.9;fill:none}
+.sh .bl{stroke:var(--ink-2);stroke-width:1;fill:none}
+.sh .blt{fill:var(--ink)}
+.sh .brace{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.sh .clef{fill:var(--ink);font-family:var(--f-music)}
+.sh .clefp{fill:none;stroke:var(--ink);stroke-linecap:round;stroke-linejoin:round}
+.sh .clefd{fill:var(--ink)}
+.sh .tsig{fill:var(--ink);font-family:var(--f-display);font-weight:700;text-anchor:middle}
+.sh .mnum{fill:var(--ink-3);font-family:var(--f-mono);font-size:10px}
+.sh .ledger{stroke:var(--staff);stroke-width:1;fill:none}
+.sh .n{--nc:var(--ink)}
+.sh .n .hd{fill:var(--nc);stroke:var(--nc);stroke-width:0;transition:fill .2s,stroke .2s}
+.sh .n .hd.ho{fill:var(--sheet)}
+.sh .n .st,.sh .n .fl{stroke:var(--nc);stroke-width:1.1;fill:none;transition:stroke .2s}
+.sh .n .dt{fill:var(--nc)}
+.sh .n.off{opacity:.28}
+.sh .n.j-perfect,.sh .n.j-ok{--nc:var(--perfect)}.sh .n.j-great{--nc:var(--great)}.sh .n.j-good,.sh .n.j-okw{--nc:var(--good)}.sh .n.j-miss{--nc:var(--miss)}
+.sh .n.j .hd.ho{fill:color-mix(in srgb,var(--nc) 22%,var(--sheet))}
+.sh .n.nx{--nc:var(--accent)}
+.sh .lbl{font-family:var(--f-mono);font-size:8.5px;text-anchor:middle;fill:var(--ink-2)}
+.sh .lbl.e{fill:var(--early)}.sh .lbl.l{fill:var(--late)}
+.sh .halo{fill:none;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:halo .55s ease-out forwards}
+@keyframes halo{from{opacity:.75;transform:scale(.5)}to{opacity:0;transform:scale(1.8)}}
+.sh .ghost .hd{fill:none;stroke:var(--miss);stroke-width:1.3;stroke-dasharray:2.2 1.6}
+.sh .ghost .ledger{stroke:var(--miss);stroke-dasharray:2 2}
+.sh .ghost text{fill:var(--miss);font-family:var(--f-music)}
+.sh .band{fill:var(--accent-soft)}
+.sh .band-l{fill:var(--accent);font:600 10px var(--f-mono)}
+.sh .ph-band{fill:var(--accent-soft)}
+.sh .ph-line{stroke:var(--accent);stroke-width:1.6}
+.sh .ph-tri{fill:var(--accent)}
+.sh .tint{fill-opacity:.2}
+.sh .tlbl{font-family:var(--f-mono);font-size:10px;text-anchor:end;font-weight:600}
+.sh .lowc{fill:none;stroke:var(--good);stroke-width:1.4;stroke-dasharray:4 3}
+.sh .lowc-l{fill:var(--good);font:600 10px var(--f-ui)}
+
+/* ---------- home ---------- */
+.home-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+.home-cta{display:flex;gap:8px;flex-wrap:wrap}
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:960px){.home-grid{grid-template-columns:minmax(0,1fr)}.home-side{order:-1}}
+.songs{list-style:none;background:var(--sheet);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.song{display:grid;grid-template-columns:minmax(0,1fr) 150px 120px 128px;align-items:center;gap:16px;padding:14px 16px;border-bottom:1px solid var(--rule-2)}
+.song:last-child{border-bottom:0}
+.song-t{font:700 16px/1.3 var(--f-display);display:block}
+.song-c{font-size:13px;color:var(--ink-2)}
+.song-m{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:4px;font:500 12px var(--f-ui);font-variant-numeric:tabular-nums;color:var(--ink-3);align-items:center}
+.lvl{font-family:var(--f-ui);color:var(--ink-2)}
+.segs{display:flex;gap:3px}
+.segs i{flex:1;height:6px;border-radius:2px;background:var(--rule-2)}
+.segs i.on{background:var(--perfect)}
+.song-p span{display:block;font-size:12px;color:var(--ink-3);margin-top:5px}
+.song-b{font:500 13px var(--f-mono);display:flex;align-items:center;gap:8px}
+.song-b .muted{font:400 12.5px var(--f-ui)}
+.rk{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1.5px solid currentColor;font:700 12px var(--f-display)}
+.rk-S,.rk-A{color:var(--accent)}.rk-B{color:var(--rh)}.rk-C,.rk-D{color:var(--ink-2)}
+.song-a{display:flex;justify-content:flex-end}
+.song-a .chip{white-space:normal;height:auto;padding:3px 8px;text-align:center;line-height:1.3}
+.newtag{font:600 11px var(--f-ui);color:var(--accent);margin-left:6px}
+@media (max-width:700px){.song{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px}.song-p{grid-column:1}.song-b{grid-column:2;grid-row:2;justify-content:flex-end}.song-a{grid-column:2;grid-row:1}}
+.home-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.plan{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:16px}
+.plan-list{list-style:none;counter-reset:pl;display:flex;flex-direction:column}
+.pi{counter-increment:pl;display:grid;grid-template-columns:22px 18px minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--rule-2)}
+.pi::before{content:counter(pl);font:500 12px var(--f-mono);color:var(--ink-3)}
+.pi input{width:16px;height:16px;accent-color:var(--perfect);margin:0}
+.pi label{min-width:0;cursor:pointer}
+.pi label b{display:block;font-weight:600;font-size:13.5px}
+.pi label span{font-size:12px;color:var(--ink-3)}
+.pi.done label b{text-decoration:line-through;color:var(--ink-3)}
+.plan-f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.streak{padding:4px 2px;display:flex;flex-direction:column;gap:10px}
+.streak-n{display:flex;align-items:baseline;gap:8px}
+.streak-n b{font:600 30px/1 var(--f-mono);color:var(--accent)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.week div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--ink-3)}
+.week i{width:100%;height:22px;border-radius:4px;background:var(--rule-2)}
+.week i.on{background:color-mix(in srgb,var(--perfect) 70%,var(--sheet))}
+.week .today i{outline:1.5px solid var(--accent);outline-offset:1px}
+
+/* ---------- import ---------- */
+.imp-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start;margin-top:20px}
+@media (max-width:900px){.imp-grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:26px 16px;border:1.5px dashed var(--staff);border-radius:10px;background:repeating-linear-gradient(180deg,transparent 0 13px,var(--rule-2) 13px 14px);cursor:pointer;transition:border-color .15s,background-color .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background-color:var(--accent-soft)}
+.drop svg{width:44px;height:32px;color:var(--ink-2)}
+.drop b{font-weight:600;background:var(--sheet);padding:0 6px}
+.drop span{font-size:12.5px;color:var(--ink-2);background:var(--sheet);padding:0 6px}
+.drop:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+.frow{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet-2);min-width:0}
+.frow .ft{flex:none;display:grid;place-items:center;min-width:44px;height:30px;padding:0 6px;border-radius:5px;background:var(--ink);color:var(--sheet);font:600 11px var(--f-mono)}
+.frow div{min-width:0}
+.frow b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow span{font-size:12px;color:var(--ink-3)}
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld label{font:500 12.5px var(--f-ui);color:var(--ink-2)}
+.yt{display:grid;grid-template-columns:168px minmax(0,1fr);gap:14px;align-items:center}
+@media (max-width:480px){.yt{grid-template-columns:minmax(0,1fr)}}
+.yt-th{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:8px;overflow:hidden;background:#151A21}
+.yt-th .keys-art{position:absolute;left:0;right:0;bottom:0;height:42%;background:repeating-linear-gradient(90deg,#E9ECF0 0 13px,#9AA3AF 13px 14px)}
+.yt-th .keys-art::after{content:"";position:absolute;inset:0 0 45% 0;background:repeating-linear-gradient(90deg,transparent 0 9px,#151A21 9px 17px,transparent 17px 28px)}
+.yt-th .play{position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);width:40px;height:28px;border-radius:7px;background:rgba(255,255,255,.92);display:grid;place-items:center}
+.yt-th .play::after{content:"";border-left:11px solid #151A21;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
+.yt-th .dur{position:absolute;right:6px;top:6px;font:600 10.5px var(--f-mono);color:#fff;background:rgba(0,0,0,.65);padding:1px 5px;border-radius:3px}
+.yt-m b{display:block;font-weight:600}
+.yt-m span{font-size:12.5px;color:var(--ink-3)}
+.diffs{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.diffs legend{font:500 12.5px var(--f-ui);color:var(--ink-2);padding:0;margin-bottom:6px;width:100%}
+.diffs label{display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+.diffs input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.imp-act{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rights{font-size:12px;color:var(--ink-3);border-top:1px solid var(--rule-2);padding-top:12px}
+.stepper{list-style:none;display:flex;flex-direction:column}
+.st{position:relative;display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;padding-bottom:16px}
+.st::before{content:"";position:absolute;left:10.5px;top:26px;bottom:3px;width:1px;background:var(--rule)}
+.st:last-child{padding-bottom:0}
+.st:last-child::before{display:none}
+.st[data-s=done]::before{background:var(--perfect)}
+.st-k{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--rule);background:var(--sheet);display:grid;place-items:center;color:var(--on-note)}
+.st-k svg{width:12px;height:12px;opacity:0}
+.st[data-s=active] .st-k{border-color:var(--accent);border-top-color:transparent;animation:spin .8s linear infinite}
+.st[data-s=done] .st-k{background:var(--perfect);border-color:var(--perfect)}
+.st[data-s=done] .st-k svg{opacity:1}
+.st[data-s=skip] .st-k{border-style:dashed}
+@keyframes spin{to{transform:rotate(360deg)}}
+.st-r{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.st-r b{font-weight:600}
+.st[data-s=pending] .st-r b{color:var(--ink-2)}
+.st-time{font:500 12px var(--f-ui);font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap}
+.st-sub{font-size:12.5px;color:var(--ink-2);margin-top:1px}
+.st-done{font:500 12px var(--f-ui);font-variant-numeric:tabular-nums;color:var(--perfect);margin-top:3px}
+.stems{display:grid;grid-template-columns:52px minmax(0,1fr) 38px;gap:5px 10px;align-items:center;margin-top:8px;font-size:12px;color:var(--ink-2)}
+.stems .sb{height:6px;background:var(--rule-2);border-radius:3px;overflow:hidden}
+.stems .sb i{display:block;height:100%;width:0;background:var(--ink-3);transition:width 1.2s ease-out}
+.stems .sb i.pn{background:var(--accent)}
+.stems em{font:500 11px var(--f-mono);font-style:normal;text-align:right}
+.dchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.review{border-top:1px solid var(--rule-2);padding-top:16px;display:flex;flex-direction:column;gap:14px}
+.mini-wrap{border:1px solid var(--rule-2);border-radius:8px;background:var(--sheet);padding:6px 4px;overflow:hidden}
+.detect{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin:0}
+.detect div{display:flex;flex-direction:column;gap:2px}
+.detect dt{font-size:11.5px;color:var(--ink-3)}
+.detect dd{margin:0;font:600 14px var(--f-ui)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.flag{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid color-mix(in srgb,var(--good) 45%,var(--rule));background:color-mix(in srgb,var(--good) 8%,var(--sheet));font-size:13px}
+.flag.ok{border-color:color-mix(in srgb,var(--perfect) 40%,var(--rule));background:color-mix(in srgb,var(--perfect) 7%,var(--sheet))}
+.flag div{display:flex;gap:6px}
+
+/* ---------- result ---------- */
+.res-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:24px;align-items:center;background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:20px 22px}
+@media (max-width:820px){.res-top{grid-template-columns:auto minmax(0,1fr)}.res-act{grid-column:1/-1}}
+@media (max-width:460px){.res-top{grid-template-columns:minmax(0,1fr);gap:14px;padding:16px}}
+.stamp{position:relative;width:112px;height:112px;border-radius:50%;display:grid;place-items:center;color:var(--sc);border:2.5px solid var(--sc);transform:rotate(-7deg);font:700 60px/1 var(--f-display)}
+.stamp::before{content:"";position:absolute;inset:5px;border-radius:50%;border:1px solid var(--sc);opacity:.6}
+.stamp.S,.stamp.A{--sc:var(--accent)}.stamp.B{--sc:var(--rh)}.stamp.C,.stamp.D{--sc:var(--ink-2)}
+.res-meta{font-size:13px;color:var(--ink-2)}
+.res-score{font:500 40px/1.1 var(--f-mono);letter-spacing:-.02em;margin-top:2px}
+.res-sub{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:6px;font-size:13.5px;color:var(--ink-2)}
+.res-sub b{color:var(--ink);font-weight:600}
+.badge{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:4px;font:600 12px var(--f-ui);border:1.5px solid var(--perfect);color:var(--perfect)}
+.badge.pp{border-color:var(--accent);color:var(--accent)}
+.res-coach{margin-top:12px;font-size:14px;display:flex;gap:8px;align-items:flex-start}
+.res-coach svg{flex:none;width:18px;height:18px;color:var(--accent);margin-top:2px}
+.res-act{display:flex;flex-direction:column;gap:8px}
+@media (max-width:820px){.res-act{flex-direction:row;flex-wrap:wrap}}
+.ex-note{margin:10px 2px 0;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-2);flex-wrap:wrap}
+.res-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;margin-top:16px}
+@media (max-width:860px){.res-grid{grid-template-columns:minmax(0,1fr)}}
+.blk{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;min-width:0}
+.blk+.blk{margin-top:0}
+.res-wide{margin-top:16px}
+.blk-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px;margin-bottom:12px}
+.blk-h h2{font:600 15px var(--f-ui)}
+.blk-h span{font-size:12.5px;color:var(--ink-3)}
+.jt{width:100%;border-collapse:collapse;font-size:13px}
+.jt td{padding:7px 0;border-top:1px solid var(--rule-2);vertical-align:middle}
+.jt tr:first-child td{border-top:0}
+.jt .jn{display:flex;align-items:center;gap:8px;font-weight:600;white-space:nowrap}
+.jt .jn i{width:9px;height:9px;border-radius:2px;background:var(--c)}
+.jt .jw{color:var(--ink-3);font:400 12px var(--f-ui);font-variant-numeric:tabular-nums;padding-left:8px}
+.jt .jbar{width:34%;padding-left:10px}
+.jt .jbar div{height:6px;border-radius:3px;background:var(--rule-2);overflow:hidden}
+.jt .jbar i{display:block;height:100%;background:var(--c)}
+.jt .jc{text-align:right;font:600 13px var(--f-mono);padding-left:10px;width:40px}
+.hist text{font-family:var(--f-mono);font-size:10px;fill:var(--ink-3)}
+.hist .hz{fill:color-mix(in srgb,var(--perfect) 9%,transparent)}
+.hist .he{fill:var(--early)}.hist .hl{fill:var(--late)}
+.hist .ax{stroke:var(--rule);stroke-width:1}
+.hist .grid{stroke:var(--rule-2);stroke-width:1;stroke-dasharray:2 3}
+.hist .mean{stroke:var(--ink);stroke-width:1.2;stroke-dasharray:3 2}
+.hist .cnt{fill:var(--ink-2);text-anchor:middle}
+.hist .lab{fill:var(--ink-2);font-family:var(--f-ui);font-size:11px}
+.legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
+.legend i{display:block;width:120px;height:8px;border-radius:2px;background:linear-gradient(90deg,color-mix(in oklab,var(--perfect) 0%,var(--miss)),color-mix(in oklab,var(--perfect) 50%,var(--miss)),var(--perfect));opacity:.75}
+.recs{list-style:none;display:flex;flex-direction:column}
+.rec{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--rule-2)}
+.rec:first-child{border-top:0}
+.rec input{width:16px;height:16px;accent-color:var(--accent);margin:2px 0 0}
+.rec label b{display:block;font-weight:600}
+.rec label span{font-size:12.5px;color:var(--ink-2)}
+.rec.added label b::after{content:"오늘의 연습에 추가됨";margin-left:8px;font:600 11px var(--f-ui);color:var(--perfect)}
+.recs-f{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+
+/* ---------- teacher ---------- */
+.t-head{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.t-head .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.t-sum{display:flex;flex-wrap:wrap;gap:10px 32px;padding:14px 18px;background:var(--sheet);border:1px solid var(--rule);border-radius:10px;margin-bottom:16px}
+.t-sum div{display:flex;flex-direction:column}
+.t-sum dt{font-size:12px;color:var(--ink-3)}
+.t-sum dd{margin:0;font:600 18px var(--f-ui);font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto;background:var(--sheet);border:1px solid var(--rule);border-radius:10px}
+.tt{width:100%;min-width:820px;border-collapse:collapse;font-size:13px}
+.tt th{text-align:left;font:600 12px var(--f-ui);color:var(--ink-3);padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+.tt td{padding:12px 14px;border-bottom:1px solid var(--rule-2);vertical-align:middle}
+.tt tr:last-child td{border-bottom:0}
+.tt .nm{min-width:150px}
+.tt .nm b{display:block;font-weight:600}
+.tt .nm span{font-size:12px;color:var(--ink-3)}
+.tt .num{font:600 14px var(--f-ui);font-variant-numeric:tabular-nums;display:block;min-width:40px}
+.tt .spark{display:flex;align-items:center;gap:10px}
+.tt svg{display:block}
+.tt .pg{display:block;height:4px;border-radius:2px;background:var(--rule-2);margin-top:5px;width:120px;overflow:hidden}
+.tt .pg i{display:block;height:100%;background:var(--rh)}
+.tt .wk{display:flex;gap:4px;flex-wrap:wrap}
+.tt .wk span{font:500 11.5px var(--f-mono);padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--miss) 12%,var(--sheet));color:var(--miss)}
+.tt .q small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:4px;max-width:180px}
+.tt .alert{color:var(--miss);font-weight:600}
+.foot-note{font-size:12.5px;color:var(--ink-3);margin-top:12px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;max-width:calc(100% - 32px);padding:10px 16px;border-radius:8px;background:var(--ink);color:var(--sheet);font:500 13.5px var(--f-ui);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast.in{animation:fadein .25s ease-out}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .pill.show{animation:pillr 1s linear forwards!important}
+  @keyframes pillr{0%,80%{opacity:1}100%{opacity:0}}
+}
+</style>
+
+<div class="app">
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#play" id="brand-link" aria-label="Score Flow 연주 화면으로">
+      <svg viewBox="0 0 28 20" aria-hidden="true"><g stroke="currentColor" stroke-width="1" opacity=".55"><path d="M1 3h26M1 7h26M1 11h26M1 15h26"/></g><ellipse cx="11" cy="13" rx="3.6" ry="2.6" transform="rotate(-20 11 13)" fill="var(--accent)"/><path d="M14.3 12.5V2" stroke="var(--accent)" stroke-width="1.4"/><path d="M21 0v20" stroke="var(--accent)" stroke-width="1.6"/></svg>
+      <span>Score Flow</span>
+    </a>
+    <nav class="nav" aria-label="화면">
+      <button type="button" id="tab-home" data-go="home">연습실</button>
+      <button type="button" id="tab-import" data-go="import">악보 가져오기</button>
+      <button type="button" id="tab-play" data-go="play">연주</button>
+      <button type="button" id="tab-result" data-go="result">결과</button>
+      <button type="button" id="tab-teacher" data-go="teacher">선생님</button>
+    </nav>
+    <div class="top-r">
+      <span class="dev" id="dev-chip" title="입력 장치"><i></i><span id="dev-text">PC 키보드로 플레이 중</span></span>
+      <button type="button" class="icon-btn" id="theme-btn" aria-label="밝은 화면과 어두운 화면 바꾸기"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="currentColor"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ================= HOME ================= -->
+<section class="screen" id="scr-home" hidden aria-labelledby="home-title">
+  <div class="home-head">
+    <div>
+      <h1 class="h1" id="home-title">연습실</h1>
+      <p class="lede">악보를 넣으면, 그 악보대로 제대로 쳤는지 실시간으로 채점해 줍니다. 마디마다 어디가 빨랐고 늦었는지 기록해 다음 연습을 짜 드려요.</p>
+    </div>
+    <div class="home-cta">
+      <button type="button" class="btn pri" id="home-continue">Ode to Joy 이어서 연습</button>
+      <button type="button" class="btn" id="home-import">악보 가져오기</button>
+    </div>
+  </div>
+  <div class="home-grid">
+    <div class="lib">
+      <div class="sec-h"><h2>내 악보</h2><span class="muted" id="lib-count"></span></div>
+      <ul class="songs" id="songs"></ul>
+    </div>
+    <aside class="home-side">
+      <section class="plan" aria-labelledby="plan-h">
+        <div class="sec-h"><h2 id="plan-h">오늘의 연습</h2><span class="muted" id="plan-time"></span></div>
+        <ol class="plan-list" id="plan-list"></ol>
+        <div class="plan-f"><span class="muted" id="plan-left"></span><button type="button" class="btn pri sm" id="plan-start">다음 항목 시작</button></div>
+      </section>
+      <section class="streak" aria-label="연습 기록">
+        <div class="streak-n"><b id="streak-n">6</b><span>일 연속 연습 중</span></div>
+        <div class="week" id="week"></div>
+        <p class="muted">이번 주 82분 연습 · 목표 100분</p>
+      </section>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= IMPORT ================= -->
+<section class="screen" id="scr-import" hidden aria-labelledby="imp-h">
+  <h1 class="h1" id="imp-h">악보 가져오기</h1>
+  <p class="lede">종이 악보 사진, PDF, MusicXML, MIDI를 넣으면 채점할 수 있는 악보로 바꿔 드려요. 녹음이나 YouTube 연주에서 악보를 만들 수도 있어요.</p>
+  <div class="imp-grid">
+    <div class="panel">
+      <div class="seg" role="radiogroup" aria-label="가져올 곳">
+        <input type="radio" name="src" id="src-sheet" value="sheet" checked><label for="src-sheet">악보 파일</label>
+        <input type="radio" name="src" id="src-yt" value="yt"><label for="src-yt">YouTube 링크</label>
+        <input type="radio" name="src" id="src-audio" value="audio"><label for="src-audio">오디오 파일</label>
+      </div>
+      <div id="panel-sheet" class="fld">
+        <label class="drop" id="drop-sheet" for="file-sheet">
+          <svg viewBox="0 0 44 32" aria-hidden="true"><g stroke="currentColor" fill="none" stroke-width="1.2"><path d="M2 8h40M2 13h40M2 18h40M2 23h40M2 28h40" opacity=".5"/><path d="M22 4v18m-6-6 6 6 6-6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+          <b>악보 파일을 끌어다 놓거나 눌러서 고르세요</b>
+          <span>MusicXML (.musicxml · .mxl) · MIDI (.mid) · PDF · 사진(JPG·PNG)</span>
+          <input type="file" id="file-sheet" class="vh" accept=".musicxml,.xml,.mxl,.mid,.midi,.pdf,.png,.jpg,.jpeg,.webp">
+        </label>
+        <div class="frow"><span class="ft" id="fs-type">PDF</span><div><b id="fs-name">ode_to_joy_scan.pdf</b><span id="fs-meta">예시 파일 · 1페이지 · 휴대폰으로 찍은 스캔</span></div></div>
+        <p class="muted" style="font-size:12.5px">사진은 악보를 평평하게 펴고 밝은 곳에서 찍을수록 정확해요. MusicXML·MIDI는 인식 단계를 건너뛰어요.</p>
+      </div>
+      <div id="panel-yt" class="fld" hidden>
+        <label for="yt-url">YouTube 링크</label>
+        <input class="inp" id="yt-url" type="url" value="https://www.youtube.com/watch?v=ode-to-joy-piano">
+        <div class="yt">
+          <div class="yt-th" aria-hidden="true"><div class="keys-art"></div><div class="play"></div><span class="dur">2:41</span></div>
+          <div class="yt-m"><b>Ode to Joy · Piano Solo</b><span>예시 채널 · 영상 미리보기는 링크 정보만 흉내 냈어요</span></div>
+        </div>
+      </div>
+      <div id="panel-audio" class="fld" hidden>
+        <label class="drop" id="drop-audio" for="file-audio">
+          <svg viewBox="0 0 44 32" aria-hidden="true"><g stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round"><path d="M4 16h3M10 10v12M14 6v20M18 12v8M22 4v24M26 9v14M30 13v6M34 7v18M38 14v4"/></g></svg>
+          <b>녹음 파일을 끌어다 놓거나 눌러서 고르세요</b>
+          <span>MP3 · WAV · M4A, 10분 이하</span>
+          <input type="file" id="file-audio" class="vh" accept=".mp3,.wav,.m4a,audio/*">
+        </label>
+        <div class="frow"><span class="ft" id="fa-type">WAV</span><div><b id="fa-name">ode_to_joy_piano.wav</b><span id="fa-meta">예시 파일 · 2분 41초 · 44.1kHz</span></div></div>
+      </div>
+      <fieldset class="diffs" id="diff-set" hidden>
+        <legend>만들 난이도</legend>
+        <label><input type="checkbox" id="diff-easy" checked>Easy</label>
+        <label><input type="checkbox" id="diff-normal" checked>Normal</label>
+        <label><input type="checkbox" id="diff-orig" checked>Original</label>
+      </fieldset>
+      <div class="imp-act"><button type="button" class="btn pri" id="imp-run">변환 시작</button><span class="muted" id="imp-hint">목업에서는 몇 초 안에 끝나는 시뮬레이션이에요</span></div>
+      <p class="rights">본인이 권리를 가진 음원·악보만 업로드하세요.</p>
+    </div>
+    <div class="panel" aria-live="polite">
+      <div class="sec-h" style="margin:0"><h2>변환 과정</h2><span class="muted" id="imp-total">대기 중</span></div>
+      <ol class="stepper" id="stepper"></ol>
+      <div class="review" id="review" hidden>
+        <div class="sec-h" style="margin:0"><h2 id="rv-h">인식 결과 확인</h2><span class="chip" id="rv-conf">신뢰도 96%</span></div>
+        <div class="mini-wrap" id="imp-mini"><svg class="sh" id="imp-svg" role="img" aria-label="인식된 악보 1–4마디"></svg></div>
+        <dl class="detect" id="rv-detect"></dl>
+        <div class="fgrid">
+          <div class="fld"><label for="imp-title">제목</label><input class="inp" id="imp-title" value="Ode to Joy (가져온 악보)"></div>
+          <div class="fld"><label for="imp-key">조성</label><select class="sel" id="imp-key"><option>C장조 (조표 없음)</option><option>G장조 (♯1)</option><option>F장조 (♭1)</option><option>D장조 (♯2)</option><option>a단조 (조표 없음)</option></select></div>
+          <div class="fld"><label for="imp-meter">박자</label><select class="sel" id="imp-meter"><option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option></select></div>
+          <div class="fld"><label for="imp-tempo">템포 (♩=)</label><input class="inp mono" id="imp-tempo" type="number" min="30" max="240" value="100"></div>
+        </div>
+        <div class="flag" id="rv-flag"><span id="rv-flag-t"><b>4마디</b> 점4분음표 + 8분음표로 읽었어요 · 신뢰도 71%</span><div><button type="button" class="btn sm" id="flag-ok">맞아요</button><button type="button" class="btn sm quiet" id="flag-fix">4분음표 2개로 고치기</button></div></div>
+        <div class="imp-act"><button type="button" class="btn pri" id="imp-add">연습실에 추가</button><button type="button" class="btn" id="imp-play">바로 연주</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLAY ================= -->
+<section class="screen" id="scr-play" aria-labelledby="play-title">
+  <div class="play">
+    <div class="stage" id="stage" data-view="both">
+      <div class="stage-head">
+        <div class="song-id"><h1 id="play-title">Ode to Joy</h1><span class="by">L. v. Beethoven · 4/4 · <span class="mono">♩=<span id="bpm-v">100</span></span></span></div>
+        <span class="status" id="status" data-k="demo"><i></i><span id="status-t">데모 자동 연주 중 · 소리 꺼짐</span></span>
+        <div class="stage-act">
+          <button type="button" class="btn pri" id="btn-start"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11L13.2 8z" fill="currentColor"/></svg>직접 플레이</button>
+          <button type="button" class="btn" id="btn-pause" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor"/></svg><span id="pause-t">일시정지</span></button>
+          <button type="button" class="btn" id="btn-restart"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8a4.8 4.8 0 1 0 1.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M2.6 1.8v3.6h3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>처음부터</button>
+          <button type="button" class="btn" id="btn-pass" hidden>이번 회차 결과</button>
+        </div>
+      </div>
+      <div class="hudbar">
+        <div class="hud" aria-label="현재 기록">
+          <div class="hud-i"><span class="hud-k">점수</span><span class="hud-v" id="hud-score">0</span></div>
+          <div class="hud-i"><span class="hud-k">정확도</span><span class="hud-v" id="hud-acc">—</span></div>
+          <div class="hud-i combo"><span class="hud-k">콤보</span><span class="hud-v" id="hud-combo">0</span><span class="combo-ul" id="combo-ul"></span></div>
+          <div class="hud-i"><span class="hud-k">마디</span><span class="hud-v" id="hud-bar">1/8</span></div>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="보기">
+          <input type="radio" name="view" id="view-sheet" value="sheet"><label for="view-sheet">악보만</label>
+          <input type="radio" name="view" id="view-both" value="both" checked><label for="view-both">둘 다</label>
+          <input type="radio" name="view" id="view-fall" value="fall"><label for="view-fall">폭포만</label>
+        </div>
+      </div>
+      <div class="view-area">
+        <div class="sheet-wrap" id="sheet-wrap"><div class="sheet-inner"><svg class="sh" id="sheet-svg" role="img" aria-label="Ode to Joy 큰보표 악보. 판정된 음표는 색이 바뀝니다."></svg><div class="pill" id="pill-sheet" aria-hidden="true"></div></div></div>
+        <div class="fall" id="fall"><canvas id="fall-cv" aria-hidden="true"></canvas><div class="pill" id="pill-fall" aria-hidden="true"></div></div>
+        <div class="countin" id="countin" hidden><span id="countin-n">3</span></div>
+      </div>
+      <div class="keys" id="keys" role="group" aria-label="화면 건반. 누르면 소리가 나고 채점됩니다."></div>
+      <div class="coachbar">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.2 18h7.6L11.4 2.5H8.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 14.5 14.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13.3" cy="7.6" r="1.3" fill="currentColor"/></svg>
+        <p id="coach" aria-live="polite"><b>AI 코치</b> 데모 연주 중이에요.</p>
+      </div>
+    </div>
+
+    <aside class="rail" aria-label="연습 설정">
+      <section class="rail-sec">
+        <h2 class="rail-h">판정</h2>
+        <ul class="jl" id="jl"></ul>
+      </section>
+      <section class="rail-sec">
+        <h2 class="rail-h">연습 방법</h2>
+        <div class="ctl">
+          <label class="sw" for="opt-wait"><input type="checkbox" id="opt-wait" role="switch"><span class="sw-t"></span><span class="sw-x">대기 모드<small>정답 건반을 칠 때까지 기다리기</small></span></label>
+        </div>
+        <div class="ctl">
+          <label class="sw" for="opt-loop"><input type="checkbox" id="opt-loop" role="switch"><span class="sw-t"></span><span class="sw-x">A–B 구간 반복<small>고른 마디만 계속 돌려요</small></span></label>
+          <div class="ab"><label for="loop-a">A</label><select class="sel sm" id="loop-a"></select><span>–</span><label for="loop-b">B</label><select class="sel sm" id="loop-b"></select><span>마디</span></div>
+        </div>
+        <div class="ctl"><div class="ctl-row"><span class="ctl-l" id="tempo-l">템포</span>
+          <div class="seg" role="radiogroup" aria-labelledby="tempo-l">
+            <input type="radio" name="tempo" id="tempo-50" value="0.5"><label for="tempo-50">50%</label>
+            <input type="radio" name="tempo" id="tempo-75" value="0.75"><label for="tempo-75">75%</label>
+            <input type="radio" name="tempo" id="tempo-100" value="1" checked><label for="tempo-100">100%</label>
+          </div></div></div>
+        <div class="ctl"><div class="ctl-row"><span class="ctl-l" id="hand-l">손</span>
+          <div class="seg" role="radiogroup" aria-labelledby="hand-l">
+            <input type="radio" name="hand" id="hand-r" value="R" checked><label for="hand-r">오른손</label>
+            <input type="radio" name="hand" id="hand-l2" value="L"><label for="hand-l2">왼손</label>
+            <input type="radio" name="hand" id="hand-b" value="B"><label for="hand-b">양손</label>
+          </div></div></div>
+        <div class="ctl"><label class="sw" for="opt-metro"><input type="checkbox" id="opt-metro" role="switch" checked><span class="sw-t"></span><span class="sw-x">메트로놈</span></label></div>
+        <div class="ctl"><label class="sw" for="opt-auto"><input type="checkbox" id="opt-auto" role="switch" checked><span class="sw-t"></span><span class="sw-x">자동 연주<small>모범 연주를 보고 들어요</small></span></label></div>
+        <div class="ctl">
+          <div class="ctl-row"><label class="ctl-l" for="opt-offset">지연 보정</label><span class="off-v" id="offset-v">0ms</span></div>
+          <input type="range" id="opt-offset" min="-100" max="100" step="5" value="0">
+          <span class="muted" style="font-size:12px">건반·스피커가 늦게 반응하면 +쪽으로 옮겨요</span>
+        </div>
+      </section>
+      <section class="rail-sec keyhelp">
+        <h2 class="rail-h">PC 키보드로 치기</h2>
+        <p>오른손 흰건반 C4~E5: <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd><kbd>;</kbd></p><p>검은건반: <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd><kbd>O</kbd><kbd>P</kbd></p>
+        <p>왼손(양손 모드) <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd><kbd>B</kbd><kbd>N</kbd><kbd>M</kbd> · <kbd>Space</kbd> 일시정지</p>
+      </section>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= RESULT ================= -->
+<section class="screen" id="scr-result" hidden aria-labelledby="res-h">
+  <h1 class="vh" id="res-h">연주 결과</h1>
+  <div class="res-top">
+    <div class="stamp" id="res-rank" aria-label="랭크">B</div>
+    <div style="min-width:0">
+      <p class="res-meta" id="res-meta"></p>
+      <div class="res-score mono" id="res-score">0</div>
+      <div class="res-sub"><span>정확도 <b class="mono" id="res-acc"></b></span><span>최대 콤보 <b class="mono" id="res-combo"></b></span><span id="res-badges"></span></div>
+      <p class="res-coach"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.2 18h7.6L11.4 2.5H8.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 14.5 14.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="13.3" cy="7.6" r="1.3" fill="currentColor"/></svg><span id="res-coach"></span></p>
+    </div>
+    <div class="res-act">
+      <button type="button" class="btn pri" id="res-again">다시 연주</button>
+      <button type="button" class="btn" id="res-weak">약한 구간 반복</button>
+      <button type="button" class="btn quiet" id="res-home">연습실로</button>
+    </div>
+  </div>
+  <p class="ex-note" id="res-ex"><span class="ex">예시 결과</span>처음 열었을 때 보여 주는 예시예요. 연주를 끝내면 내 기록으로 바뀌어요.</p>
+  <div class="res-grid">
+    <section class="blk"><div class="blk-h"><h2>판정</h2><span id="jt-n"></span></div><table class="jt" id="res-jt"></table></section>
+    <section class="blk"><div class="blk-h"><h2>타이밍 분포</h2><span id="hist-sum"></span></div><div id="res-hist"></div></section>
+  </div>
+  <section class="blk res-wide"><div class="blk-h"><h2>마디별 정확도</h2><div class="legend"><span>60%</span><i></i><span>100%</span></div></div>
+    <div id="res-sheet-wrap" style="overflow:hidden"><svg class="sh" id="res-sheet" role="img" aria-label="마디별 정확도를 색으로 칠한 악보"></svg></div>
+  </section>
+  <section class="blk res-wide"><div class="blk-h"><h2>AI 코치 추천</h2><span>골라서 오늘의 연습에 넣어 두세요</span></div>
+    <ul class="recs" id="res-recs"></ul>
+    <div class="recs-f"><button type="button" class="btn pri" id="rec-add">고른 항목 오늘의 연습에 추가</button><span class="muted" id="rec-note"></span></div>
+  </section>
+</section>
+
+<!-- ================= TEACHER ================= -->
+<section class="screen" id="scr-teacher" hidden aria-labelledby="t-h">
+  <div class="t-head">
+    <div class="row"><h1 class="h1" id="t-h">선생님</h1><span class="ex">예시 데이터</span></div>
+    <p class="lede">학생들이 집에서 연습한 기록이 마디 단위로 모여요. 약한 마디에 맞춘 연습 퀘스트를 바로 보낼 수 있어요.</p>
+  </div>
+  <dl class="t-sum" id="t-sum"></dl>
+  <div class="tbl-wrap"><table class="tt" id="t-table"></table></div>
+  <p class="foot-note">선생님용 기능 미리보기예요. 학생 이름과 수치는 모두 예시입니다.</p>
+</section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+/* =====================================================================
+   0. helpers
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
+const fmtInt = v => Math.round(v).toLocaleString('en-US');
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+/* =====================================================================
+   1. song + engine rules (shared brief — numbers kept exactly)
+   ===================================================================== */
+const ODE_TO_JOY = {
+  title: 'Ode to Joy', composer: 'L. v. Beethoven', bpm: 100, beatsPerBar: 4, leadInBeats: 4,
+  notes: [
+    [64,0,1,'R'],[64,1,1,'R'],[65,2,1,'R'],[67,3,1,'R'],
+    [67,4,1,'R'],[65,5,1,'R'],[64,6,1,'R'],[62,7,1,'R'],
+    [60,8,1,'R'],[60,9,1,'R'],[62,10,1,'R'],[64,11,1,'R'],
+    [64,12,1.5,'R'],[62,13.5,0.5,'R'],[62,14,2,'R'],
+    [64,16,1,'R'],[64,17,1,'R'],[65,18,1,'R'],[67,19,1,'R'],
+    [67,20,1,'R'],[65,21,1,'R'],[64,22,1,'R'],[62,23,1,'R'],
+    [60,24,1,'R'],[60,25,1,'R'],[62,26,1,'R'],[64,27,1,'R'],
+    [62,28,1.5,'R'],[60,29.5,0.5,'R'],[60,30,2,'R'],
+    [48,0,4,'L'],[55,4,4,'L'],[48,8,4,'L'],[55,12,4,'L'],
+    [48,16,4,'L'],[55,20,4,'L'],[48,24,4,'L'],[55,28,2,'L'],[48,30,2,'L'],
+  ],
+};
+const BARS = 8, BPB = ODE_TO_JOY.beatsPerBar, LEAD = ODE_TO_JOY.leadInBeats;
+const WIN = 140;
+const W_OF = { perfect: 1, great: .7, good: .4, miss: 0, ok: 1, okw: 0 };
+const JC = { perfect: 'perfect', great: 'great', good: 'good', miss: 'miss', ok: 'perfect', okw: 'good', wrong: 'miss' };
+const J_LABEL = { perfect: 'Perfect', great: 'Great', good: 'Good', miss: 'Miss', wrong: 'Wrong', ok: '정답', okw: '다시 쳐서 정답' };
+const grade = e => { const a = Math.abs(e); return a <= 45 ? 'perfect' : a <= 90 ? 'great' : a <= 140 ? 'good' : 'miss'; };
+const rankOf = acc => acc >= 95 ? 'S' : acc >= 90 ? 'A' : acc >= 80 ? 'B' : acc >= 70 ? 'C' : 'D';
+const PCN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SOL = { C: '도', D: '레', E: '미', F: '파', G: '솔', A: '라', B: '시' };
+const nName = m => PCN[m % 12] + (Math.floor(m / 12) - 1);
+const nKo = m => { const p = PCN[m % 12]; return p.replace('#', '♯') + '(' + SOL[p[0]] + (p.length > 1 ? '♯' : '') + ')'; };
+const PC = { KeyA:60, KeyW:61, KeyS:62, KeyE:63, KeyD:64, KeyF:65, KeyT:66, KeyG:67, KeyY:68, KeyH:69, KeyU:70, KeyJ:71, KeyK:72, KeyO:73, KeyL:74, KeyP:75, Semicolon:76,
+             KeyZ:48, KeyX:50, KeyC:52, KeyV:53, KeyB:55, KeyN:57, KeyM:59 };
+const PC_LABEL = {}; for (const c in PC) PC_LABEL[PC[c]] = c === 'Semicolon' ? ';' : c.slice(3);
+const keyHint = m => PC_LABEL[m] ? `PC 키 ${PC_LABEL[m]}` : `${nName(m)} 건반`;
+const HANDS_KO = { R: '오른손', L: '왼손', B: '양손' };
+
+const NOTES = ODE_TO_JOY.notes.map((a, i) => ({ i, midi: a[0], beat: a[1], dur: a[2], hand: a[3], m: Math.floor(a[1] / BPB), j: null, err: null, autoErr: null, autoWrong: null, autoWrongDone: false }));
+
+const S = {
+  mode: 'demo', muted: true, paused: false, beat: -LEAD, lastT: performance.now(), startBeat: 0, endBeat: BARS * BPB,
+  rate: 1, hands: 'R', wait: false, loop: { on: false, a: 5, b: 8 }, metro: true, auto: true, offset: 0, view: 'both',
+  notes: NOTES, stats: null, waiting: false, waitSince: 0, gateBeatCur: undefined, gateHadWrong: false, ghosts: [],
+  passes: [], lastPass: null, passNo: 0, holdUntil: 0, pendingReset: false, lastResult: null, scoreDisp: 0, scoreTarget: 0,
+};
+const active = n => (S.hands === 'B' || n.hand === S.hands) && (!S.loop.on || (n.m >= S.loop.a - 1 && n.m <= S.loop.b - 1));
+const mpb = () => 60000 / (ODE_TO_JOY.bpm * S.rate);           // ms per beat (bpm x rate)
+const newStats = () => ({ perfect: 0, great: 0, good: 0, miss: 0, ok: 0, okw: 0, wrong: 0, sumW: 0, judged: 0, combo: 0, maxCombo: 0, offsets: [], wrongs: [], total: S.notes.filter(active).length });
+
+/* =====================================================================
+   2. audio (WebAudio, starts only after a user gesture)
+   ===================================================================== */
+const audio = {
+  ctx: null, out: null, voices: {},
+  unlock() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      try { this.ctx = new AC(); const comp = this.ctx.createDynamicsCompressor(); this.out = this.ctx.createGain(); this.out.gain.value = .55; this.out.connect(comp); comp.connect(this.ctx.destination); }
+      catch (e) { this.ctx = null; return; }
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+  },
+  ok() { return this.ctx && this.ctx.state === 'running'; },
+  note(midi, vel = .8, holdSec) {
+    if (!this.ok()) return; const c = this.ctx; this.off(midi, .03);
+    const t = c.currentTime, f = 440 * Math.pow(2, (midi - 69) / 12);
+    const g = c.createGain(), o1 = c.createOscillator(), o2 = c.createOscillator(), g2 = c.createGain(), lp = c.createBiquadFilter();
+    o1.type = 'triangle'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2; g2.gain.value = .16;
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(9000, f * 8), t); lp.frequency.exponentialRampToValueAtTime(Math.max(500, f * 2), t + .7);
+    o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(this.out);
+    const pk = .32 * vel; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(pk, t + .006); g.gain.exponentialRampToValueAtTime(pk * .35, t + .35); g.gain.exponentialRampToValueAtTime(.0001, t + 2.2);
+    o1.start(t); o2.start(t); o1.stop(t + 2.3); o2.stop(t + 2.3);
+    const v = { g, o1, o2 }; this.voices[midi] = v;
+    if (holdSec) setTimeout(() => { if (this.voices[midi] === v) this.off(midi); }, holdSec * 1000);
+  },
+  off(midi, rel = .2) {
+    const v = this.voices[midi]; if (!v || !this.ctx) return; const t = this.ctx.currentTime;
+    try { v.g.gain.cancelScheduledValues(t); v.g.gain.setValueAtTime(Math.max(v.g.gain.value, .0001), t); v.g.gain.exponentialRampToValueAtTime(.0001, t + rel); v.o1.stop(t + rel + .05); v.o2.stop(t + rel + .05); } catch (e) {}
+    delete this.voices[midi];
+  },
+  tick(accent) {
+    if (!this.ok()) return; const c = this.ctx, t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = 'square'; o.frequency.value = accent ? 1760 : 1175;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(accent ? .14 : .08, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + .05);
+    o.connect(g); g.connect(this.out); o.start(t); o.stop(t + .06);
+  },
+};
+
+/* =====================================================================
+   3. engine: clock, judge, auto-play, wait mode, A–B loop
+   ===================================================================== */
+function seedAuto() {
+  const r = mulberry32(1009 + S.passNo * 31);
+  S.notes.forEach(n => {
+    const x = r(); let e;
+    if (x < .025 && S.mode === 'demo') e = null;                     // very rare Miss
+    else if (x < .085) e = (r() < .5 ? -1 : 1) * (95 + r() * 40);     // Good
+    else if (x < .23) e = (r() < .5 ? -1 : 1) * (50 + r() * 38);      // Great
+    else e = (r() - .5) * 72;                                         // Perfect
+    n.autoErr = e; n.autoWrong = null; n.autoWrongDone = false;
+  });
+  if (S.mode === 'demo') { const t = S.notes.find(n => n.beat === 21 && n.hand === 'R'); if (t) { t.autoWrong = -150; t.autoErr = 62; } }
+}
+
+function resetRun(mode, keepPasses) {
+  S.mode = mode; S.paused = false; S.waiting = false; S.gateBeatCur = undefined; S.gateHadWrong = false; S.pendingReset = false; S.holdUntil = 0;
+  if (mode === 'play') S.muted = false;
+  if (!keepPasses) { S.passes = []; S.lastPass = null; els.btnPass.hidden = true; }
+  S.startBeat = S.loop.on ? (S.loop.a - 1) * BPB : 0;
+  S.endBeat = S.loop.on ? S.loop.b * BPB : BARS * BPB;
+  S.beat = S.startBeat - LEAD - 1e-6;
+  S.lastT = performance.now();
+  S.notes.forEach(n => { n.j = null; n.err = null; });
+  S.ghosts = []; S.stats = newStats(); seedAuto();
+  sheet.refreshStates(); markGate();
+  S.scoreTarget = 0; S.scoreDisp = 0; els.hudScore.textContent = '0';
+  updateHud(); updateJList(); updatePauseBtn(); coachSoon(0);
+}
+
+function gateOf() { let g = null; for (const n of S.notes) if (!n.j && active(n) && (g === null || n.beat < g)) g = n.beat; return g; }
+function beatAt(t) {
+  if (S.paused || S.waiting || (S.mode !== 'play' && S.mode !== 'demo') || performance.now() < S.holdUntil) return S.beat;
+  return S.beat + (t - S.lastT) / mpb();
+}
+
+function advance(now, dt) {
+  const mp = mpb(); let nb = S.beat + dt / mp;
+  if (S.wait) {
+    const g = gateOf();
+    if (g !== S.gateBeatCur) { S.gateBeatCur = g; S.gateHadWrong = false; markGate(); coachSoon(); }
+    if (g !== null && nb >= g) { nb = Math.max(S.beat, g); if (!S.waiting) { S.waiting = true; S.waitSince = now; } }
+    else S.waiting = false;
+  }
+  metro(S.beat, nb);
+  S.beat = nb;
+  if (S.auto) autoPlay(now);
+  if (!S.wait) missCheck();
+  if (S.beat >= S.endBeat + .35) onEnd(now);
+}
+function metro(b0, b1) {
+  if (S.muted) return;
+  for (let k = Math.floor(b0) + 1; k <= Math.floor(b1); k++) {
+    if (k < S.startBeat) { if (S.mode === 'play') audio.tick(k === S.startBeat - LEAD); }
+    else if (S.metro && k < S.endBeat) audio.tick(k % BPB === 0);
+  }
+}
+function autoPlay(now) {
+  const mp = mpb();
+  for (const n of S.notes) {
+    if (n.j || !active(n)) continue;
+    if (S.wait) { if (S.waiting && n.beat === S.gateBeatCur && now - S.waitSince > 240) hitAuto(n, 0); continue; }
+    if (n.autoWrong != null && !n.autoWrongDone && (S.beat - n.beat) * mp >= n.autoWrong) {
+      n.autoWrongDone = true; const wm = n.midi + (n.midi % 12 === 4 || n.midi % 12 === 11 ? 1 : 2);
+      pressVisual(wm, 150); wrongPress(wm);
+    }
+    if (n.autoErr != null && (S.beat - n.beat) * mp >= n.autoErr) hitAuto(n, n.autoErr);
+  }
+}
+function hitAuto(n, err) {
+  const hold = Math.max(120, n.dur * mpb() * .85);
+  pressVisual(n.midi, hold); if (!S.muted) audio.note(n.midi, .6, hold / 1000);
+  judgeNote(n, err);
+}
+function missCheck() {
+  const mp = mpb(), b = S.beat - (S.auto ? 0 : S.offset) / mp;
+  for (const n of S.notes) if (!n.j && active(n) && (b - n.beat) * mp > WIN) judgeNote(n, null);
+}
+
+/* judge one key press (midi) at input time t (performance.now base) */
+function judgeInput(midi, t) {
+  const mp = mpb(), b = beatAt(t - S.offset);   // offset is subtracted from input time
+  if (S.wait) {
+    const g = S.gateBeatCur;
+    if (g != null && (g - b) * mp <= WIN) {
+      const n = S.notes.find(x => !x.j && active(x) && x.beat === g && x.midi === midi);
+      if (n) { judgeNote(n, (b - g) * mp); return; }
+    }
+    if (b < S.startBeat - WIN / mp) return;       // ignore presses during count-in
+    wrongPress(midi); return;
+  }
+  if (b < S.startBeat - WIN / mp) return;
+  let best = null, be = 0;
+  for (const n of S.notes) {
+    if (n.j || !active(n) || n.midi !== midi) continue;
+    const e = (b - n.beat) * mp;
+    if (Math.abs(e) <= WIN && (!best || Math.abs(e) < Math.abs(be))) { best = n; be = e; }
+  }
+  if (best) judgeNote(best, be); else wrongPress(midi);
+}
+
+function judgeNote(n, err, silent) {
+  const st = S.stats; let j;
+  if (S.wait) j = S.gateHadWrong ? 'okw' : 'ok';
+  else if (err == null) j = 'miss';
+  else j = grade(err);
+  n.j = j; n.err = j === 'miss' ? null : err;
+  st[j]++; st.judged++; st.sumW += W_OF[j];
+  st.combo = j === 'miss' ? 0 : st.combo + 1; st.maxCombo = Math.max(st.maxCombo, st.combo);
+  if (!S.wait && j !== 'miss') st.offsets.push({ err, m: n.m, midi: n.midi, hand: n.hand });
+  sheet.mark(n); sheet.annotate(n);
+  if (silent) return;
+  sheet.halo(n);
+  if (j !== 'miss') { keyFx(n.midi, j); fall.glow(n.midi, JC[j]); }
+  showPill(j, n.err, n.midi);
+  if (j !== 'miss' && st.combo >= 2) bumpCombo();
+  updateHud(); updateJList(); coachSoon();
+}
+function nearestNote(b) { let best = null; for (const n of S.notes) if (active(n) && (!best || Math.abs(n.beat - b) < Math.abs(best.beat - b))) best = n; return best; }
+function wrongPress(midi, atBeat) {
+  const st = S.stats; st.wrong++; st.combo = 0;
+  const b = clamp(atBeat != null ? atBeat : S.beat, S.startBeat, S.endBeat - .01);
+  const near = S.wait && S.gateBeatCur != null ? S.notes.find(n => !n.j && active(n) && n.beat === S.gateBeatCur) : nearestNote(b);
+  st.wrongs.push({ midi, beat: b, m: Math.floor(b / BPB), near: near ? near.midi : null, nearM: near ? near.m : null });
+  const g = { midi, beat: b }; S.ghosts.push(g); drawGhost(sheet.lay && sheet.lay.ghost, sheet.L, g);
+  if (S.wait) S.gateHadWrong = true;
+  keyFx(midi, 'wrong'); showPill('wrong', null, midi);
+  updateHud(); updateJList(); coachSoon();
+}
+
+function onEnd(now) {
+  if (S.mode === 'demo') {
+    if (S.loop.on) { S.passNo++; resetRun('demo'); return; }
+    S.holdUntil = now + 1600; S.pendingReset = true; return;
+  }
+  if (S.mode !== 'play') return;
+  const res = resultFromState();
+  if (S.loop.on) {
+    S.passes.push(res); S.lastPass = res; els.btnPass.hidden = false; S.passNo++;
+    const prev = S.passes[S.passes.length - 2];
+    resetRun('play', true);
+    showPill('loop', null, null, `${S.passes.length + 1}회째`);
+    coachSet(`${S.loop.a}–${S.loop.b}마디 ${S.passes.length}회째 끝: 정확도 ${res.acc.toFixed(1)}%` + (prev ? ` (지난 회차 ${prev.acc.toFixed(1)}%)` : '') + '. 바로 다음 회차가 시작돼요.', 4500);
+    return;
+  }
+  S.mode = 'ended'; S.lastResult = res; creditSong(res);
+  go('result');
+}
+function primeDemo(b) {          // start the attract loop mid-song so the first frame is already "alive"
+  const mp = mpb(); const evs = [];
+  S.notes.forEach(n => { if (!active(n)) return; if (n.autoErr == null) { if (n.beat + WIN / mp < b) evs.push([n.beat + WIN / mp, n, null]); } else if (n.beat + n.autoErr / mp <= b) evs.push([n.beat + n.autoErr / mp, n, n.autoErr]); });
+  evs.sort((x, y) => x[0] - y[0]).forEach(([, n, e]) => judgeNote(n, e, true));
+  S.beat = b; S.scoreTarget = S.stats.sumW / S.stats.total * 1e6; S.scoreDisp = S.scoreTarget;
+  els.hudScore.textContent = fmtInt(S.scoreDisp); updateHud(); updateJList();
+}
+
+/* =====================================================================
+   4. results (shared by live runs and example data)
+   ===================================================================== */
+function computeResult(o) {
+  const notes = o.notes.slice().sort((a, b) => a.beat - b.beat || a.midi - b.midi);
+  const N = notes.length, c = { perfect: 0, great: 0, good: 0, miss: 0, ok: 0, okw: 0, wrong: o.wrongs.length };
+  let sumW = 0; notes.forEach(n => { c[n.j]++; sumW += W_OF[n.j]; });
+  const ev = notes.map(n => ({ b: n.beat, bad: n.j === 'miss' })).concat(o.wrongs.map(w => ({ b: w.beat, bad: true }))).sort((a, b) => a.b - b.b);
+  let combo = 0, maxC = 0; ev.forEach(e => { if (e.bad) combo = 0; else { combo++; maxC = Math.max(maxC, combo); } });
+  const ratio = N ? sumW / N : 0, acc = ratio * 100;
+  const measures = []; for (let m = 0; m < BARS; m++) { const ns = notes.filter(n => n.m === m); measures.push(ns.length ? { n: ns.length, acc: ns.reduce((s, n) => s + W_OF[n.j], 0) / ns.length } : null); }
+  const offsets = o.mode === 'wait' ? [] : notes.filter(n => n.err != null && n.j !== 'miss').map(n => ({ err: n.err, m: n.m, midi: n.midi, hand: n.hand }));
+  return Object.assign({}, o, { notes, N, counts: c, score: Math.round(ratio * 1e6), acc, rank: rankOf(acc), maxCombo: maxC,
+    fc: c.miss === 0 && c.wrong === 0, pp: o.mode === 'wait' ? (c.ok === N && c.wrong === 0) : (c.perfect === N && c.wrong === 0), measures, offsets });
+}
+function resultFromState() {
+  return computeResult({ notes: S.notes.filter(active).map(n => ({ i: n.i, midi: n.midi, beat: n.beat, dur: n.dur, hand: n.hand, m: n.m, j: n.j || 'miss', err: n.err })),
+    wrongs: S.stats.wrongs.slice(), mode: S.wait ? 'wait' : 'normal', hands: S.hands, rate: S.rate, loop: S.loop.on ? { a: S.loop.a, b: S.loop.b } : null, auto: S.auto, example: false, date: new Date() });
+}
+let EXAMPLE = null;
+function exampleResult() {
+  const E = { 0: -12, 1: 8, 2: 21, 3: -30, 4: 5, 5: 14, 6: -9, 7: 33, 8: -18, 9: 6, 10: 52, 11: 27, 12: 61, 13.5: 96, 14: 44, 16: -8, 17: 12, 18: -20, 19: 3,
+              20: 16, 21: -64, 22: 28, 23: 10, 24: 9, 25: 22, 26: 47, 27: 18, 28: 88, 29.5: null, 30: 63 };
+  const notes = NOTES.filter(n => n.hand === 'R').map(n => { const e = E[n.beat]; return { i: n.i, midi: n.midi, beat: n.beat, dur: n.dur, hand: n.hand, m: n.m, j: e == null ? 'miss' : grade(e), err: e == null ? null : e }; });
+  return computeResult({ notes, wrongs: [{ midi: 64, beat: 13.3, m: 3, near: 62, nearM: 3 }, { midi: 62, beat: 29.4, m: 7, near: 60, nearM: 7 }], mode: 'normal', hands: 'R', rate: 1, loop: null, auto: false, example: true, date: new Date(2026, 9, 4) });
+}
+function coachRecs(res) {
+  const recs = [], hk = h => HANDS_KO[h];
+  const groups = {}; res.offsets.forEach(o => { const k = o.m + o.hand; (groups[k] = groups[k] || { m: o.m, hand: o.hand, e: [] }).e.push(o.err); });
+  let worst = null; Object.values(groups).forEach(g => { g.mean = avg(g.e); if (g.e.length >= 2 && Math.abs(g.mean) >= 35 && (!worst || Math.abs(g.mean) > Math.abs(worst.mean))) worst = g; });
+  if (worst) { const a = worst.m + 1, ms = Math.round(Math.abs(worst.mean));
+    recs.push({ text: `${a}마디 ${hk(worst.hand)}이 평균 ${ms}ms ${worst.mean > 0 ? '늦어요' : '빨라요'}.`, act: `템포 75%로 낮춰 ${a}마디만 3번 연습해 보세요.`,
+      plan: { title: `${a}마디 ${hk(worst.hand)} ×3`, sub: '템포 75% · A–B 반복', loop: { a, b: a }, hands: worst.hand, rate: .75, min: 2 } }); }
+  const ms = res.measures.map((x, i) => x && { acc: x.acc, i }).filter(Boolean).sort((a, b) => a.acc - b.acc);
+  const weak = ms.find(x => x.acc < .95 && (!worst || x.i !== worst.m));
+  if (weak) { const a = weak.i + 1, lo = a % 2 === 0 ? a - 1 : a, hi = Math.min(BARS, lo + 1);
+    recs.push({ text: `${a}마디 정확도가 ${Math.round(weak.acc * 100)}%예요.`, act: `${lo}–${hi}마디를 A–B 반복으로 3번 쳐 보세요.`,
+      plan: { title: `${lo}–${hi}마디 ${hk(res.hands)} ×3`, sub: '템포 75% · A–B 반복', loop: { a: lo, b: hi }, hands: res.hands, rate: .75, min: 3 } }); }
+  if (res.counts.wrong >= 2) recs.push({ text: `틀린 건반을 ${res.counts.wrong}번 눌렀어요.`, act: '대기 모드로 음 위치부터 익혀 보세요.',
+      plan: { title: `전곡 ${hk(res.hands)} 대기 모드`, sub: '정답 건반을 칠 때까지 기다리기', hands: res.hands, rate: 1, wait: true, min: 3 } });
+  if (res.offsets.length >= 8) { const mean = avg(res.offsets.map(o => o.err)); if (Math.abs(mean) >= 25) { const r5 = Math.round(mean / 5) * 5;
+    recs.push({ text: `전체적으로 평균 ${Math.round(Math.abs(mean))}ms ${mean > 0 ? '늦게' : '빨리'} 쳤어요.`, act: `기기 지연 때문이라면 지연 보정을 ${r5 > 0 ? '+' : ''}${r5}ms로 맞춰 보세요.`, offset: r5 }); } }
+  if (res.acc >= 90) recs.push({ text: '이번 연주는 안정적이에요.', act: res.hands === 'B' ? '템포 100%로 전곡에 도전해 보세요.' : '다음 단계로 양손을 템포 50%부터 시작해 보세요.',
+      plan: res.hands === 'B' ? { title: '전곡 도전', sub: '양손 · BPM 100', hands: 'B', rate: 1, min: 2 } : { title: '양손 BPM 50', sub: '전곡 · 대기 모드', hands: 'B', rate: .5, wait: true, min: 5 } });
+  if (!recs.length) recs.push({ text: '모든 마디가 고르게 정확해요.', act: '템포를 한 단계 올려 보세요.', plan: { title: '전곡 템포 100%', sub: HANDS_KO[res.hands], hands: res.hands, rate: 1, min: 2 } });
+  return recs.slice(0, 4);
+}
+
+/* =====================================================================
+   5. sheet renderer (SVG grand staff)
+   ===================================================================== */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, a, p) { const e = document.createElementNS(SVGNS, tag); if (a) for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+const DIA = [0,0,1,1,2,3,3,4,4,5,5,6], SHARP = [0,1,0,1,0,0,1,0,1,0,1,0];
+const dia = m => (Math.floor(m / 12) - 1) * 7 + DIA[m % 12];   // diatonic step (C4 = 28)
+const CLEF = { glyph: false, g: null, f: null };
+const G_PATH = 'M1.62 6.05C1.3 6.55 .45 6.4 .5 5.8C.55 5.3 1.3 5.2 1.5 5.65M1.5 6.1L1.05-1.55C1-2.35 1.85-2.6 1.85-1.75C1.85-.55 0 .55 0 2.55C0 3.8.95 4.3 1.7 4.15C2.55 4 2.7 2.55 1.8 2.4C1.1 2.25.8 2.95 1.15 3.35';
+const F_PATH = 'M.3 1.1C.4.05 2.4-.1 2.45 1.35C2.5 2.8 1.25 3.7.15 4.1';
+const heat = a => `color-mix(in oklab, var(--perfect) ${Math.round(clamp((a - .6) / .4, 0, 1) * 100)}%, var(--miss))`;
+
+function layout(width, o) {
+  const sp = o.sp, perLine = o.perLine, from = o.from || 0, to = o.to == null ? BARS - 1 : o.to;
+  const tT = sp * 3.4, tB = tT + 4 * sp, bT = tB + sp * 5.6, bB = bT + 4 * sp, sysH = bB + sp * 2.6, gap = sp * 1.2;
+  const x0 = sp * 1.6 + 4, systems = [], meas = {};
+  for (let s = 0, m = from; m <= to; s++, m += perLine) {
+    const ts = s === 0 && from === 0, hdr = ts ? sp * 7 : sp * 4.4, n = Math.min(perLine, to - m + 1), mw = (width - x0 - hdr - 2) / perLine;
+    systems.push({ y: s * (sysH + gap), x0, hdr, mStart: m, n, mw, end: x0 + hdr + n * mw, ts });
+    for (let k = 0; k < n; k++) meas[m + k] = { sys: s, x: x0 + hdr + k * mw, w: mw };
+  }
+  return { sp, tT, tB, bT, bB, sysH, gap, systems, meas, width, from, to, height: Math.ceil(systems.length * (sysH + gap) - gap) };
+}
+function xOf(L, b) { const m = clamp(Math.floor(b / BPB), L.from, L.to), M = L.meas[m], pl = L.sp * 1.7, pr = L.sp * 1.3; return M.x + pl + clamp((b - m * BPB) / BPB, 0, 1) * (M.w - pl - pr); }
+function yOf(L, d, staff, sy) { return staff === 'T' ? sy + L.tB - (d - 30) * L.sp / 2 : sy + L.bB - (d - 18) * L.sp / 2; }
+function drawClef(g, kind, x, top, sp) {
+  if (CLEF.glyph) {
+    const r = kind === 'G' ? CLEF.g : CLEF.f, h = (r.a + r.d) / 100, H = kind === 'G' ? sp * 7.3 : sp * 3.25, fs = H / h;
+    const inkTop = kind === 'G' ? top - sp * 1.65 : top - sp * .05;
+    sv('text', { x: (x + r.l / 100 * fs).toFixed(2), y: (inkTop + r.a / 100 * fs).toFixed(2), 'font-size': fs.toFixed(2), class: 'clef' }, g).textContent = kind === 'G' ? '\u{1D11E}' : '\u{1D122}';
+    return;
+  }
+  const grp = sv('g', { transform: `translate(${x} ${top}) scale(${sp})` }, g);
+  if (kind === 'G') sv('path', { d: G_PATH, class: 'clefp', 'stroke-width': .2 }, grp);
+  else { sv('path', { d: F_PATH, class: 'clefp', 'stroke-width': .22 }, grp); [[.48, 1.05, .34], [2.95, .55, .17], [2.95, 1.45, .17]].forEach(([cx, cy, r]) => sv('circle', { cx, cy, r, class: 'clefd' }, grp)); }
+}
+function drawSystem(g, L, s) {
+  const sp = L.sp, y = s.y, x0 = s.x0, x1 = s.end, top = y + L.tT, bot = y + L.bB;
+  let d = ''; for (let i = 0; i < 5; i++) d += `M${x0} ${top + i * sp}H${x1}M${x0} ${y + L.bT + i * sp}H${x1}`;
+  sv('path', { d, class: 'staff' }, g);
+  sv('path', { d: `M${x0} ${top}V${bot}`, class: 'bl' }, g);
+  const bx = x0 - 3, mid = (top + bot) / 2, h = bot - top, w = sp * 1.1;
+  sv('path', { d: `M${bx} ${top}C${bx - w} ${top + h * .08} ${bx} ${mid - h * .12} ${bx - w} ${mid}C${bx} ${mid + h * .12} ${bx - w} ${bot - h * .08} ${bx} ${bot}`, class: 'brace' }, g);
+  drawClef(g, 'G', x0 + sp * .6, top, sp); drawClef(g, 'F', x0 + sp * .6, y + L.bT, sp);
+  if (s.ts) { const tx = x0 + sp * 5.3, fs = sp * 2.5; [top, y + L.bT].forEach(yy => { sv('text', { x: tx, y: yy + sp * 1.9, 'font-size': fs, class: 'tsig' }, g).textContent = '4'; sv('text', { x: tx, y: yy + sp * 3.9, 'font-size': fs, class: 'tsig' }, g).textContent = '4'; }); }
+  for (let k = 0; k < s.n; k++) {
+    const m = s.mStart + k, M = L.meas[m], xe = M.x + M.w;
+    if (m === BARS - 1) { sv('path', { d: `M${xe - sp * .8} ${top}V${bot}`, class: 'bl' }, g); sv('rect', { x: xe - sp * .42, y: top, width: sp * .42, height: bot - top, class: 'blt' }, g); }
+    else sv('path', { d: `M${xe} ${top}V${bot}`, class: 'bl' }, g);
+    sv('text', { x: M.x + 3, y: top - sp * 1.25, class: 'mnum' }, g).textContent = m + 1;
+  }
+}
+function ledgers(g, L, x, d, staff, sy) {
+  const lo = staff === 'T' ? 30 : 18, hi = lo + 8, w = L.sp * 1.05; let p = '';
+  for (let l = lo - 2; l >= d; l -= 2) { const yy = yOf(L, l, staff, sy).toFixed(2); p += `M${(x - w).toFixed(2)} ${yy}H${(x + w).toFixed(2)}`; }
+  for (let l = hi + 2; l <= d; l += 2) { const yy = yOf(L, l, staff, sy).toFixed(2); p += `M${(x - w).toFixed(2)} ${yy}H${(x + w).toFixed(2)}`; }
+  if (p) sv('path', { d: p, class: 'ledger' }, g);
+}
+function drawNote(g, L, n) {
+  const sp = L.sp, M = L.meas[n.m], sy = L.systems[M.sys].y, staff = n.hand === 'L' ? 'B' : 'T', d = dia(n.midi), x = xOf(L, n.beat), y = yOf(L, d, staff, sy);
+  ledgers(g, L, x, d, staff, sy);
+  const grp = sv('g', { class: 'n' }, g);
+  const whole = n.dur >= 4, hollow = n.dur >= 2, dotted = Math.abs(n.dur - 1.5) < .01 || Math.abs(n.dur - 3) < .01, eighth = Math.abs(n.dur - .5) < .01;
+  const rx = whole ? sp * .78 : sp * .6, ry = whole ? sp * .5 : sp * .43, xs = x.toFixed(2), ys = y.toFixed(2);
+  const hd = sv('ellipse', { cx: xs, cy: ys, rx, ry, class: 'hd' + (hollow ? ' ho' : '') }, grp);
+  if (!whole) hd.setAttribute('transform', `rotate(-20 ${xs} ${ys})`);
+  if (hollow) hd.setAttribute('style', `stroke-width:${(whole ? sp * .26 : sp * .17).toFixed(2)}`);
+  if (!whole) {
+    const up = staff === 'T' ? d < 34 : d < 22, sx = (up ? x + rx - .5 : x - rx + .5).toFixed(2), ey = up ? y - sp * 3.3 : y + sp * 3.3;
+    sv('path', { d: `M${sx} ${(y + (up ? -1 : 1)).toFixed(2)}V${ey.toFixed(2)}`, class: 'st' }, grp);
+    if (eighth) { const s = up ? 1 : -1; sv('path', { d: `M${sx} ${ey.toFixed(2)}c${sp * .15} ${s * sp * 1.2} ${sp * 1.5} ${s * sp * 1.3} ${sp * .95} ${s * sp * 2.9}`, class: 'fl', style: `stroke-width:${(sp * .2).toFixed(2)}` }, grp); }
+  }
+  if (dotted) { const on = (staff === 'T' ? d - 30 : d - 18) % 2 === 0; sv('circle', { cx: (x + rx + sp * .6).toFixed(2), cy: (on ? y - sp / 2 : y).toFixed(2), r: sp * .17, class: 'dt' }, grp); }
+  return { grp, x, y, sy, staff, nx: false };
+}
+function drawGhost(layer, L, g) {
+  if (!layer || !L) return; const sp = L.sp;
+  const b = clamp(g.beat, L.from * BPB, (L.to + 1) * BPB - .01), M = L.meas[Math.floor(b / BPB)]; if (!M) return;
+  const sy = L.systems[M.sys].y, staff = g.midi >= 60 ? 'T' : 'B', d = dia(g.midi), x = xOf(L, b), y = yOf(L, d, staff, sy);
+  if (y < sy - sp || y > sy + L.sysH + sp) return;
+  const grp = sv('g', { class: 'ghost' }, layer);
+  ledgers(grp, L, x, d, staff, sy);
+  sv('ellipse', { cx: x.toFixed(2), cy: y.toFixed(2), rx: sp * .6, ry: sp * .43, transform: `rotate(-20 ${x.toFixed(2)} ${y.toFixed(2)})`, class: 'hd' }, grp);
+  if (SHARP[g.midi % 12]) sv('text', { x: (x - sp * 1.7).toFixed(2), y: (y + sp * .5).toFixed(2), 'font-size': sp * 1.6 }, grp).textContent = '♯';
+}
+function drawScore(svg, L, o) {
+  svg.textContent = ''; svg.setAttribute('viewBox', `0 0 ${L.width} ${L.height}`); svg.setAttribute('width', L.width); svg.setAttribute('height', L.height);
+  const lay = {}; ['bg', 'staff', 'notes', 'ghost', 'lbl', 'ph'].forEach(k => { lay[k] = sv('g', { class: 'l-' + k }, svg); });
+  const sp = L.sp, box = m => { const M = L.meas[m], s = L.systems[M.sys]; return { x: M.x, y: s.y + L.tT - sp * 2.2, w: M.w, h: L.bB - L.tT + sp * 3.4, sy: s.y }; };
+  if (o.tints) for (let m = L.from; m <= L.to; m++) { const a = o.tints[m]; if (a == null) continue; const b = box(m);
+    sv('rect', { x: b.x + 2, y: b.y, width: b.w - 4, height: b.h, rx: 4, class: 'tint', style: `fill:${heat(a)}` }, lay.bg);
+    sv('text', { x: b.x + b.w - 5, y: b.sy + L.tT - sp * 1.25, class: 'tlbl', style: `fill:${heat(a)}` }, lay.lbl).textContent = Math.round(a * 100) + '%'; }
+  if (o.loop) for (let m = o.loop.a - 1; m <= o.loop.b - 1; m++) { if (!L.meas[m]) continue; const b = box(m);
+    sv('rect', { x: b.x, y: b.y, width: b.w, height: b.h, class: 'band' }, lay.bg);
+    if (m === o.loop.a - 1) sv('text', { x: b.x + 4, y: b.y + b.h - 4, class: 'band-l' }, lay.bg).textContent = 'A';
+    if (m === o.loop.b - 1) sv('text', { x: b.x + b.w - 11, y: b.y + b.h - 4, class: 'band-l' }, lay.bg).textContent = 'B'; }
+  if (o.lowconf != null && L.meas[o.lowconf]) { const b = box(o.lowconf); sv('rect', { x: b.x + 2, y: b.y, width: b.w - 4, height: b.h, rx: 5, class: 'lowc' }, lay.bg); sv('text', { x: b.x + 7, y: b.y + b.h - 5, class: 'lowc-l' }, lay.bg).textContent = '확인 필요'; }
+  L.systems.forEach(s => drawSystem(lay.staff, L, s));
+  const refs = []; o.notes.forEach(n => { if (L.meas[n.m]) refs[n.i] = drawNote(lay.notes, L, n); });
+  return { lay, refs };
+}
+
+const sheet = {
+  L: null, refs: [], lay: null, ph: null, curSys: -1, w: 0, view: '', phX: 0, phY: 0,
+  render(force) {
+    const wrap = els.sheetWrap, w = Math.floor(wrap.clientWidth); if (!w) return;
+    if (!force && w === this.w && this.view === S.view) return;
+    this.w = w; this.view = S.view;
+    const wide = w >= 700, big = S.view === 'sheet', sp = big ? (wide ? 10 : 8.6) : (wide ? 8 : 7.6);
+    const L = this.L = layout(w, { sp, perLine: wide ? 4 : 2 });
+    const r = drawScore(els.sheetSvg, L, { notes: S.notes, loop: S.loop.on ? S.loop : null });
+    this.refs = r.refs; this.lay = r.lay;
+    const t = L.tT - sp * 2, b = L.bB + sp * 1.4; this.ph = sv('g', { class: 'ph' }, r.lay.ph);
+    sv('rect', { x: -sp * .9, y: t, width: sp * 1.8, height: b - t, rx: 3, class: 'ph-band' }, this.ph);
+    sv('path', { d: `M0 ${t}V${b}`, class: 'ph-line' }, this.ph);
+    sv('path', { d: `M-4.5 ${t - 5}H4.5L0 ${t}Z`, class: 'ph-tri' }, this.ph);
+    this.refreshStates(); markGate();
+    const one = Math.ceil(L.sysH + 6);
+    wrap.style.height = (big ? Math.min(L.height + 6, Math.max(one, Math.round(innerHeight * .64))) : (wide ? L.height + 6 : one)) + 'px';
+    this.curSys = -1; this.updatePh(S.beat, true);
+  },
+  refreshStates() { if (!this.lay) return; this.lay.ghost.textContent = ''; this.lay.lbl.textContent = ''; S.notes.forEach(n => { this.mark(n); this.annotate(n); }); S.ghosts.forEach(g => drawGhost(this.lay.ghost, this.L, g)); },
+  mark(n) { const r = this.refs[n.i]; if (!r) return; let c = 'n'; if (!active(n)) c += ' off'; if (n.j) c += ' j j-' + n.j; else if (r.nx) c += ' nx'; r.grp.setAttribute('class', c); },
+  annotate(n) {
+    const r = this.refs[n.i]; if (!r || !n.j || n.err == null || (n.j !== 'great' && n.j !== 'good')) return;
+    const L = this.L, ly = r.staff === 'T' ? r.y + L.sp * 2.3 : r.sy + L.bB + L.sp * 1.8;
+    sv('text', { x: r.x.toFixed(1), y: ly.toFixed(1), class: 'lbl ' + (n.err < 0 ? 'e' : 'l') }, this.lay.lbl).textContent = (n.err > 0 ? '+' : '−') + Math.round(Math.abs(n.err));
+  },
+  halo(n) { const r = this.refs[n.i]; if (!r || RM.matches || !n.j) return; const c = sv('circle', { cx: r.x.toFixed(1), cy: r.y.toFixed(1), r: this.L.sp * 1.1, class: 'halo', style: `stroke:var(--${JC[n.j]})` }, this.lay.lbl); setTimeout(() => c.remove(), 600); },
+  updatePh(beat, instant) {
+    const L = this.L; if (!L || !this.ph) return;
+    let b = beat, lead = false; if (b < S.startBeat) { b = S.startBeat; lead = true; }
+    b = clamp(b, 0, BARS * BPB - .001);
+    const M = L.meas[Math.floor(b / BPB)]; if (!M) return;
+    const s = L.systems[M.sys]; let x = xOf(L, b); if (lead) x -= L.sp * 1.2;
+    this.ph.setAttribute('transform', `translate(${x.toFixed(1)} ${s.y})`);
+    this.phX = x; this.phY = s.y;
+    if (M.sys !== this.curSys) { this.curSys = M.sys; const w = els.sheetWrap; if (w.scrollHeight > w.clientHeight + 2) w.scrollTo({ top: Math.max(0, s.y - 2), behavior: instant || RM.matches ? 'auto' : 'smooth' }); }
+  },
+};
+
+/* =====================================================================
+   6. keyboard + waterfall (canvas)
+   ===================================================================== */
+const KB = { lo: 60, hi: 76, whites: [], pos: {}, els: {} };
+function buildKeys() {
+  const lo = S.hands === 'R' ? 60 : 48, hi = 76; KB.lo = lo; KB.hi = hi; KB.whites = []; KB.pos = {}; KB.els = {};
+  for (let m = lo; m <= hi; m++) if (!SHARP[m % 12]) KB.whites.push(m);
+  const ww = 1 / KB.whites.length, box = els.keys; box.textContent = '';
+  const mk = (m, black, x0, w) => {
+    const d = document.createElement('div'); d.className = 'k ' + (black ? 'kb' : 'kw'); d.dataset.midi = m;
+    d.style.left = (x0 * 100) + '%'; d.style.width = (w * 100) + '%';
+    d.innerHTML = (PC_LABEL[m] ? `<span class="kl">${PC_LABEL[m]}</span>` : '') + (!black && m % 12 === 0 ? `<span class="kn">${nName(m)}</span>` : '');
+    KB.pos[m] = { x0, w, black }; KB.els[m] = d; box.appendChild(d);
+  };
+  KB.whites.forEach((m, i) => mk(m, false, i * ww, ww));
+  for (let m = lo; m <= hi; m++) if (SHARP[m % 12]) { const i = KB.whites.indexOf(m - 1), bw = ww * .6; mk(m, true, (i + 1) * ww - bw / 2, bw); }
+}
+function pressVisual(m, ms) { const e = KB.els[m]; if (!e) return; e.classList.add('down'); if (ms) setTimeout(() => e.classList.remove('down'), ms); }
+function keyFx(m, j) { const e = KB.els[m]; if (!e) return; e.classList.remove('fx', 'fx-perfect', 'fx-great', 'fx-good', 'fx-ok', 'fx-okw', 'fx-wrong'); void e.offsetWidth; e.classList.add('fx', 'fx-' + j); clearTimeout(e._fx); e._fx = setTimeout(() => e.classList.remove('fx', 'fx-' + j), 430); }
+
+const T = {};
+function readTokens() { const cs = getComputedStyle(document.documentElement); ['wf-bg', 'lane', 'rule', 'rule-2', 'ink-3', 'rh', 'lh', 'perfect', 'great', 'good', 'miss', 'accent', 'on-note'].forEach(k => { T[k] = cs.getPropertyValue('--' + k).trim(); }); }
+function withA(c, a) { if (!c || c[0] !== '#') return c; const n = parseInt(c.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function rr(c, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+const fall = {
+  cv: null, ctx: null, W: 0, H: 0, glows: [],
+  resize() { const r = this.cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); this.W = r.width; this.H = r.height; if (!r.width) return; this.cv.width = Math.round(r.width * dpr); this.cv.height = Math.round(r.height * dpr); this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); },
+  glow(m, c) { const p = KB.pos[m]; if (p) this.glows.push({ x: (p.x0 + p.w / 2) * this.W, w: p.w * this.W, c, t: performance.now() }); },
+  draw(now) {
+    const c = this.ctx, W = this.W, H = this.H; if (!W || !H) return;
+    const hitY = H - 2, look = 4.6, pxb = (H - 8) / look, nW = KB.whites.length;
+    c.fillStyle = T['wf-bg']; c.fillRect(0, 0, W, H);
+    c.fillStyle = T.lane; for (const m in KB.pos) { const p = KB.pos[m]; if (p.black) c.fillRect(p.x0 * W, 0, p.w * W, hitY); }
+    c.strokeStyle = T['rule-2']; c.lineWidth = 1; c.beginPath(); for (let i = 1; i < nW; i++) { const x = Math.round(i / nW * W) + .5; c.moveTo(x, 0); c.lineTo(x, hitY); } c.stroke();
+    c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; c.textAlign = 'right'; c.textBaseline = 'bottom';
+    for (let m = 0; m <= BARS; m++) { const y = Math.round(hitY - (m * BPB - S.beat) * pxb) + .5; if (y < 0 || y > hitY) continue;
+      c.strokeStyle = T.rule; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); if (m < BARS) { c.fillStyle = T['ink-3']; c.fillText(m + 1 + '마디', W - 4, y - 2); } }
+    c.save(); c.beginPath(); c.rect(0, 0, W, hitY); c.clip();
+    c.textAlign = 'center'; c.font = '600 10px "IBM Plex Mono", ui-monospace, monospace';
+    for (const n of S.notes) {
+      const p = KB.pos[n.midi]; if (!p) continue;
+      const yb = hitY - (n.beat - S.beat) * pxb, yt = hitY - (n.beat + n.dur - S.beat) * pxb; if (yb < 0 || yt > hitY) continue;
+      const x = p.x0 * W + (p.black ? 1 : 2), w = p.w * W - (p.black ? 2 : 4), h = Math.max(4, yb - yt - 2), act = active(n);
+      let col = n.hand === 'L' ? T.lh : T.rh, a = 1;
+      if (!act) { col = T['ink-3']; a = .2; } else if (n.j) { col = T[JC[n.j]]; a = n.j === 'miss' ? .45 : .85; }
+      c.globalAlpha = a; c.fillStyle = col; rr(c, x, yt + 1, w, h, Math.min(4, w / 3)); c.fill();
+      if (act && !n.j && S.wait && n.beat === S.gateBeatCur) { c.globalAlpha = 1; c.strokeStyle = T.accent; c.lineWidth = 2; rr(c, x - 1, yt, w + 2, h + 2, 4); c.stroke(); }
+      if (act && h > 16 && w > 11 && PC_LABEL[n.midi]) { c.globalAlpha = 1; c.fillStyle = T['on-note']; c.fillText(PC_LABEL[n.midi], x + w / 2, yb - 3); }
+    }
+    c.restore(); c.globalAlpha = 1;
+    this.glows = this.glows.filter(g => now - g.t < 380);
+    for (const g of this.glows) { const k = 1 - (now - g.t) / 380, gr = c.createLinearGradient(0, hitY - 64, 0, hitY); gr.addColorStop(0, withA(T[g.c], 0)); gr.addColorStop(1, withA(T[g.c], .5 * k)); c.fillStyle = gr; c.fillRect(g.x - g.w * .8, hitY - 64, g.w * 1.6, 64); }
+    c.fillStyle = T.accent; c.fillRect(0, hitY - 1, W, 2);
+  },
+};
+
+/* =====================================================================
+   7. input: PC keyboard, Web MIDI, pointer
+   ===================================================================== */
+function noteOn(m, t, vel = .8) {
+  audio.unlock(); audio.note(m, vel);
+  if (cur !== 'play') return;
+  pressVisual(m);
+  if (S.mode === 'play' && !S.paused && !S.auto) judgeInput(m, t);
+  else if (S.mode !== 'play') coachSet('직접 플레이를 누르면 4박 카운트 뒤부터 채점해요. 지금은 소리만 나요.', 3000);
+}
+function noteOff(m) { const e = KB.els[m]; if (e) e.classList.remove('down'); audio.off(m); }
+const evTime = e => { const t = e && e.timeStamp, now = performance.now(); return t && Math.abs(t - now) < 1000 ? t : now; };
+document.addEventListener('keydown', e => {
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  const tg = e.target, tag = tg && tg.tagName;
+  if ((tag === 'INPUT' && !['checkbox', 'radio', 'range'].includes(tg.type)) || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (cur !== 'play') return;
+  if (e.code === 'Space') { if (tag === 'BUTTON' || tag === 'INPUT') return; e.preventDefault(); if (S.mode === 'play') setPaused(!S.paused); else startPlay(); return; }
+  const m = PC[e.code]; if (m == null || m < KB.lo) return;
+  e.preventDefault(); noteOn(m, evTime(e));
+});
+document.addEventListener('keyup', e => { const m = PC[e.code]; if (m != null) noteOff(m); });
+let midiAcc = null;
+function setDevice(names) {
+  const on = names.length > 0; els.devChip.classList.toggle('on', on);
+  els.devText.textContent = on ? names[0] + (names.length > 1 ? ` 외 ${names.length - 1}대` : '') + ' 연결됨' : 'PC 키보드로 플레이 중';
+}
+function onMidi(e) {
+  const d = e.data; if (!d || d.length < 2) return; const cmd = d[0] & 0xF0, t = evTime(e);
+  if (cmd === 0x90 && d[2] > 0) noteOn(d[1], t, d[2] / 127); else if (cmd === 0x80 || (cmd === 0x90 && d[2] === 0)) noteOff(d[1]);
+}
+function bindMidi() { const names = []; midiAcc.inputs.forEach(inp => { inp.onmidimessage = onMidi; if (inp.state === 'connected') names.push(inp.name || 'MIDI 건반'); }); setDevice(names); }
+function initMidi() {
+  setDevice([]);
+  try { const p = navigator.requestMIDIAccess && navigator.requestMIDIAccess(); if (p && p.then) p.then(acc => { midiAcc = acc; bindMidi(); acc.onstatechange = bindMidi; }, () => {}); } catch (e) {}
+}
+
+/* =====================================================================
+   8. play-screen UI
+   ===================================================================== */
+const els = {};
+function grab() {
+  Object.assign(els, { stage: $('#stage'), sheetWrap: $('#sheet-wrap'), sheetSvg: $('#sheet-svg'), keys: $('#keys'), pillSheet: $('#pill-sheet'), pillFall: $('#pill-fall'),
+    countin: $('#countin'), countN: $('#countin-n'), hudScore: $('#hud-score'), hudAcc: $('#hud-acc'), hudCombo: $('#hud-combo'), hudBar: $('#hud-bar'), comboUl: $('#combo-ul'),
+    status: $('#status'), statusT: $('#status-t'), coach: $('#coach'), jl: $('#jl'), btnPass: $('#btn-pass'), pauseT: $('#pause-t'), btnPause: $('#btn-pause'),
+    devChip: $('#dev-chip'), devText: $('#dev-text'), toast: $('#toast'), bpm: $('#bpm-v') });
+  fall.cv = $('#fall-cv'); fall.ctx = fall.cv.getContext('2d');
+}
+function updateHud() {
+  const st = S.stats; S.scoreTarget = st.total ? st.sumW / st.total * 1e6 : 0;
+  els.hudAcc.textContent = st.judged ? (st.sumW / st.judged * 100).toFixed(1) + '%' : '—';
+  els.hudCombo.textContent = st.combo;
+}
+function bumpCombo() { const u = els.comboUl; u.classList.remove('run'); void u.offsetWidth; u.classList.add('run'); }
+function updateJList() {
+  const st = S.stats, rows = S.wait ? [['ok', '정답', 'perfect'], ['okw', '다시 쳐서', 'good'], ['wrong', '틀린 건반', 'miss']]
+    : [['perfect', 'Perfect', 'perfect'], ['great', 'Great', 'great'], ['good', 'Good', 'good'], ['miss', 'Miss', 'miss'], ['wrong', 'Wrong', 'miss']];
+  const key = rows.map(r => r[0]).join();
+  if (els.jl.dataset.k !== key) { els.jl.dataset.k = key; els.jl.innerHTML = rows.map(([k, l, c]) => `<li style="--c:var(--${c})"><span class="jn"><i></i>${l}</span><span class="jb"><i data-b="${k}"></i></span><span class="jc" data-c="${k}">0</span></li>`).join(''); }
+  const tot = Math.max(1, st.total);
+  rows.forEach(([k]) => { $(`[data-c="${k}"]`, els.jl).textContent = st[k]; $(`[data-b="${k}"]`, els.jl).style.width = Math.min(100, st[k] / tot * 100) + '%'; });
+}
+function showPill(j, err, midi, extra) {
+  const inFall = S.view === 'fall', p = inFall ? els.pillFall : els.pillSheet;
+  p.className = 'pill j-' + j;
+  p.innerHTML = `<b>${j === 'loop' ? 'A–B 반복' : J_LABEL[j]}</b>` + (extra ? `<span>${extra}</span>` : (err != null && j !== 'perfect' && !S.wait ? `<span>${err > 0 ? '+' : '−'}${Math.round(Math.abs(err))}ms ${err > 0 ? '느림' : '빠름'}</span>` : ''));
+  if (inFall) { const pos = KB.pos[midi], W = fall.W; const x = pos ? (pos.x0 + pos.w / 2) * W : W / 2; p.style.left = clamp(x, 60, W - 60) + 'px'; p.style.top = Math.max(4, fall.H - 70) + 'px'; }
+  else { p.style.left = clamp(sheet.phX + 2, 64, sheet.w - 64) + 'px'; p.style.top = (sheet.phY + 2) + 'px'; }
+  p.classList.remove('show'); void p.offsetWidth; p.classList.add('show');
+}
+function markGate() {
+  sheet.refs.forEach(r => { if (r) r.nx = false; });
+  Object.values(KB.els).forEach(e => e.classList.remove('target'));
+  if (S.wait && S.gateBeatCur != null && (S.mode === 'play' || S.mode === 'demo'))
+    S.notes.forEach(n => { if (!n.j && active(n) && n.beat === S.gateBeatCur) { const r = sheet.refs[n.i]; if (r) r.nx = true; const k = KB.els[n.midi]; if (k) k.classList.add('target'); } });
+  S.notes.forEach(n => sheet.mark(n));
+}
+function statusOf() {
+  if (S.mode === 'demo') return S.paused ? ['paused', '데모 일시정지'] : ['demo', S.muted ? '데모 자동 연주 중 · 소리 꺼짐' : '자동 연주 중'];
+  if (S.mode === 'idle') return ['idle', '준비됨 · 직접 플레이를 누르세요'];
+  if (S.mode === 'ended') return ['idle', '연주 끝 · 결과 화면에서 확인하세요'];
+  if (S.paused) return ['paused', '일시정지 · Space로 이어서'];
+  if (S.beat < S.startBeat) return ['count', '카운트인 · 4박 뒤 시작'];
+  if (S.waiting) { const ns = S.notes.filter(n => !n.j && active(n) && n.beat === S.gateBeatCur); return ['wait', '기다리는 중 · ' + ns.map(n => nName(n.midi)).join(' + ')]; }
+  return ['live', (S.auto ? '자동 연주 중' : '연주 중') + (S.loop.on ? ` · ${S.loop.a}–${S.loop.b}마디 ${S.passes.length + 1}회째` : '')];
+}
+function updatePauseBtn() { els.pauseT.textContent = S.paused ? '이어서' : '일시정지'; els.btnPause.setAttribute('aria-pressed', S.paused); els.btnPause.disabled = !(S.mode === 'play' || S.mode === 'demo'); }
+function setPaused(p) { if (!(S.mode === 'play' || S.mode === 'demo')) return; S.paused = p; S.lastT = performance.now(); updatePauseBtn(); }
+
+/* coach line (live) */
+let coachT = 0, coachHold = 0;
+function coachSet(text, hold) { els.coach.innerHTML = '<b>AI 코치</b> '; els.coach.append(text); els.coach.classList.remove('flash'); void els.coach.offsetWidth; els.coach.classList.add('flash'); coachHold = hold ? performance.now() + hold : 0; }
+function coachSoon(delay = 320) { clearTimeout(coachT); coachT = setTimeout(updateCoach, delay); }
+function updateCoach() { const now = performance.now(); if (now < coachHold) { coachSoon(coachHold - now + 40); return; } const t = coachText(); if (t && els.coach.textContent !== 'AI 코치 ' + t) coachSet(t); }
+function coachText() {
+  const st = S.stats, pre = S.mode === 'demo' ? '(데모) ' : '';
+  if (S.mode === 'idle') return '직접 플레이를 누르면 4박 카운트 뒤에 시작해요. PC 키보드, 화면 건반, MIDI 건반 모두 쓸 수 있어요.';
+  if (S.mode === 'ended') return '연주가 끝났어요. 결과 화면에서 마디별로 어디가 흔들렸는지 확인해 보세요.';
+  if (S.wait && S.gateBeatCur != null) { const ns = S.notes.filter(n => !n.j && active(n) && n.beat === S.gateBeatCur);
+    if (ns.length) return pre + `${ns[0].m + 1}마디 ${ns.map(n => nKo(n.midi) + '음').join(' + ')} 차례예요. ${ns.map(n => keyHint(n.midi)).join(', ')}를 누르면 다음 음으로 넘어가요.`; }
+  if (S.mode === 'play' && S.beat < S.startBeat) { const f = S.notes.filter(active).sort((a, b) => a.beat - b.beat)[0]; if (f) return `${S.startBeat / BPB + 1}마디부터 시작해요. 첫 음은 ${nKo(f.midi)}음, ${keyHint(f.midi)}예요.`; }
+  const curM = Math.floor(Math.max(0, S.beat) / BPB);
+  const wr = st.wrongs[st.wrongs.length - 1];
+  if (wr && wr.m >= curM - 1 && wr.near != null && wr.near !== wr.midi) return pre + `방금 ${wr.nearM + 1}마디에서 ${nKo(wr.near)}음 대신 ${nKo(wr.midi)}음을 눌렀어요. 악보의 빨간 점선 음표가 실제로 친 음이에요.`;
+  const recent = S.notes.filter(n => n.j && active(n) && n.m >= curM - 1 && n.m <= curM);
+  const miss = recent.find(n => n.j === 'miss');
+  if (miss) return pre + `${miss.m + 1}마디 ${nKo(miss.midi)}음을 놓쳤어요. 이 마디만 A–B 반복으로 따로 연습해 보세요.`;
+  const groups = {}; recent.forEach(n => { if (n.err != null) { const k = n.m + '_' + n.midi; (groups[k] = groups[k] || { m: n.m, midi: n.midi, e: [] }).e.push(n.err); } });
+  let worst = null; Object.values(groups).forEach(g => { g.mean = avg(g.e); if (Math.abs(g.mean) >= 35 && (!worst || Math.abs(g.mean) > Math.abs(worst.mean))) worst = g; });
+  if (worst) return pre + `방금 ${worst.m + 1}마디 ${nKo(worst.midi)}음을 ${worst.e.length > 1 ? '평균 ' : ''}${Math.round(Math.abs(worst.mean))}ms ${worst.mean < 0 ? '빨리' : '늦게'} 쳤어요.`;
+  if (st.offsets.length >= 8) { const mean = avg(st.offsets.map(o => o.err)); if (Math.abs(mean) >= 30) { const r5 = Math.round(mean / 5) * 5;
+    return pre + `전체적으로 평균 ${Math.round(Math.abs(mean))}ms ${mean > 0 ? '늦어요' : '빨라요'}. 건반이나 스피커 지연 때문이라면 지연 보정을 ${r5 > 0 ? '+' : ''}${r5}ms로 맞춰 보세요.`; } }
+  if (st.combo >= 8) return pre + `${st.combo}음 연속으로 정확해요. 손목 힘을 빼고 이 흐름 그대로 가요.`;
+  if (S.mode === 'demo') return '데모 연주 중이에요. 직접 플레이를 누르면 4박 카운트 뒤에 내 연주를 채점해요.';
+  return '좋아요. 다음 마디를 미리 눈으로 읽어 두세요.';
+}
+
+/* frame loop */
+let lastCi = -2, lastBar = 0, lastStatus = '', frameErr = false;
+function frame(now) {
+  requestAnimationFrame(frame);
+  try {
+    let dt = now - S.lastT; S.lastT = now; dt = clamp(dt, 0, 100);
+    if (S.pendingReset && now >= S.holdUntil) { S.passNo++; resetRun('demo'); }
+    else if ((S.mode === 'demo' || S.mode === 'play') && !S.paused && now >= S.holdUntil) advance(now, dt);
+    if (cur === 'play') draw(now);
+  } catch (e) { if (!frameErr) { frameErr = true; console.error(e); } }
+}
+function draw(now) {
+  sheet.updatePh(S.beat);
+  if (S.view !== 'sheet') fall.draw(now);
+  const ci = S.mode === 'play' && S.beat < S.startBeat ? Math.floor(S.beat - (S.startBeat - LEAD)) : -1;
+  if (ci !== lastCi) { lastCi = ci; if (ci < 0) els.countin.hidden = true; else { els.countin.hidden = false; const n = els.countN; n.textContent = ['준비', '3', '2', '1'][ci] || ''; n.className = ci === 0 ? 'word' : ''; void n.offsetWidth; n.classList.add('tick'); } }
+  if (S.scoreDisp !== S.scoreTarget) { S.scoreDisp += (S.scoreTarget - S.scoreDisp) * .22; if (Math.abs(S.scoreTarget - S.scoreDisp) < 1) S.scoreDisp = S.scoreTarget; els.hudScore.textContent = fmtInt(S.scoreDisp); }
+  const bar = clamp(Math.floor(Math.max(S.beat, S.startBeat) / BPB) + 1, 1, BARS); if (bar !== lastBar) { lastBar = bar; els.hudBar.textContent = bar + '/' + BARS; }
+  const st = statusOf(); if (st[1] !== lastStatus) { lastStatus = st[1]; els.status.dataset.k = st[0]; els.statusT.textContent = st[1]; }
+}
+
+/* config + controls */
+function startPlay() { S.auto = false; syncControls(); audio.unlock(); S.muted = false; resetRun('play'); sheet.render(true); if (cur !== 'play') go('play'); }
+function configChanged() { resetRun(S.mode === 'ended' ? 'idle' : S.mode); sheet.render(true); }
+function syncControls() {
+  $('#opt-wait').checked = S.wait; $('#opt-loop').checked = S.loop.on; $('#loop-a').value = S.loop.a; $('#loop-b').value = S.loop.b;
+  $(`input[name=tempo][value="${S.rate}"]`).checked = true; $(`input[name=hand][value="${S.hands}"]`).checked = true;
+  $('#opt-metro').checked = S.metro; $('#opt-auto').checked = S.auto; $('#opt-offset').value = S.offset; $('#offset-v').textContent = (S.offset > 0 ? '+' : '') + S.offset + 'ms';
+  els.bpm.textContent = Math.round(ODE_TO_JOY.bpm * S.rate);
+}
+function bindPlayControls() {
+  const opts = Array.from({ length: BARS }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+  $('#loop-a').innerHTML = opts; $('#loop-b').innerHTML = opts;
+  $('#btn-start').addEventListener('click', startPlay);
+  $('#btn-pause').addEventListener('click', () => setPaused(!S.paused));
+  $('#btn-restart').addEventListener('click', () => { audio.unlock(); if (S.mode === 'demo') { S.passNo++; resetRun('demo'); } else { S.muted = false; resetRun('play'); } });
+  els.btnPass.addEventListener('click', () => { if (S.lastPass) { S.lastResult = S.lastPass; setPaused(true); go('result'); } });
+  $('#opt-wait').addEventListener('change', e => { S.wait = e.target.checked; updateJList(); configChanged(); });
+  $('#opt-loop').addEventListener('change', e => { S.loop.on = e.target.checked; configChanged(); });
+  const ab = () => { let a = +$('#loop-a').value, b = +$('#loop-b').value; if (b < a) { b = a; $('#loop-b').value = b; } S.loop.a = a; S.loop.b = b; if (S.loop.on) configChanged(); };
+  $('#loop-a').addEventListener('change', ab); $('#loop-b').addEventListener('change', ab);
+  $$('input[name=tempo]').forEach(r => r.addEventListener('change', () => { S.rate = +r.value; els.bpm.textContent = Math.round(ODE_TO_JOY.bpm * S.rate); }));
+  $$('input[name=hand]').forEach(r => r.addEventListener('change', () => { S.hands = r.value; buildKeys(); configChanged(); }));
+  $('#opt-metro').addEventListener('change', e => { S.metro = e.target.checked; });
+  $('#opt-auto').addEventListener('change', e => { S.auto = e.target.checked; S.muted = false; audio.unlock();
+    if (!S.auto && S.mode === 'demo') resetRun('idle'); else if (S.auto && (S.mode === 'idle' || S.mode === 'ended')) resetRun('demo'); });
+  $('#opt-offset').addEventListener('input', e => { S.offset = +e.target.value; $('#offset-v').textContent = (S.offset > 0 ? '+' : '') + S.offset + 'ms'; });
+  $$('input[name=view]').forEach(r => r.addEventListener('change', () => { S.view = r.value; els.stage.dataset.view = S.view; store.set('sf-view', S.view); requestAnimationFrame(() => { sheet.render(true); fall.resize(); }); }));
+  const ptr = new Map(), up = e => { const m = ptr.get(e.pointerId); if (m == null) return; ptr.delete(e.pointerId); noteOff(m); };
+  els.keys.addEventListener('pointerdown', e => { const k = e.target.closest('.k'); if (!k) return; e.preventDefault(); const m = +k.dataset.midi; ptr.set(e.pointerId, m); noteOn(m, evTime(e), .75); try { els.keys.setPointerCapture(e.pointerId); } catch (_) {} });
+  els.keys.addEventListener('pointerup', up); els.keys.addEventListener('pointercancel', up);
+}
+function applyPlan(p) {
+  S.loop = p.loop ? { on: true, a: p.loop.a, b: p.loop.b } : { on: false, a: S.loop.a, b: S.loop.b };
+  S.hands = p.hands || 'R'; S.rate = p.rate || 1; S.wait = !!p.wait;
+  syncControls(); buildKeys(); updateJList(); go('play'); startPlay();
+}
+
+/* =====================================================================
+   9. screens: navigation, home, import, result, teacher
+   ===================================================================== */
+const SCREENS = ['home', 'import', 'play', 'result', 'teacher'];
+let cur = '';
+function go(name) {
+  if (!SCREENS.includes(name)) name = 'play';
+  if (cur === 'play' && name !== 'play' && S.mode === 'play' && !S.paused) setPaused(true);
+  cur = name;
+  SCREENS.forEach(s => { $('#scr-' + s).hidden = s !== name; const t = $('#tab-' + s); if (s === name) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+  try { history.replaceState(null, '', '#' + name); } catch (e) {}
+  if (name === 'play') requestAnimationFrame(() => { sheet.render(true); fall.resize(); });
+  if (name === 'result') requestAnimationFrame(renderResult);
+  if (name === 'home') renderHome();
+  window.scrollTo(0, 0);
+}
+let toastT = 0;
+function toast(msg) { const t = els.toast; t.textContent = msg; t.hidden = false; t.classList.remove('in'); void t.offsetWidth; t.classList.add('in'); clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2800); }
+
+/* home */
+const SONGS = [
+  { id: 'ode', title: 'Ode to Joy', composer: 'L. v. Beethoven', level: '초급 1', bpm: 100, meter: '4/4', bars: 8, secs: ['1–4마디 오른손', '5–8마디 오른손', '왼손', '양손'], done: [0, 2], best: { score: 886667, rank: 'B' }, play: true },
+  { id: 'twinkle', title: 'Twinkle Twinkle Little Star', composer: 'Traditional', level: '초급 1', bpm: 90, meter: '4/4', bars: 12, secs: 3, done: [0, 1, 2], best: { score: 948200, rank: 'A' } },
+  { id: 'arirang', title: '아리랑', composer: '경기 민요', level: '초급 2', bpm: 84, meter: '3/4', bars: 16, secs: 4, done: [0], best: { score: 741300, rank: 'C' } },
+  { id: 'minuet', title: 'Minuet in G major', composer: 'C. Petzold (BWV Anh. 114)', level: '초급 3', bpm: 112, meter: '3/4', bars: 32, secs: 4, done: [], best: null },
+  { id: 'gymno', title: 'Gymnopédie No. 1', composer: 'E. Satie', level: '중급 1', bpm: 66, meter: '3/4', bars: 78, secs: 6, done: [], best: null },
+  { id: 'elise', title: 'Für Elise', composer: 'L. v. Beethoven', level: '중급 2', bpm: 72, meter: '3/8', bars: 103, secs: 6, done: [], best: null },
+  { id: 'river', title: 'River Flows in You', composer: 'Yiruma', level: '중급 2', bpm: 65, meter: '4/4', bars: 54, secs: 5, done: [], best: null, src: 'YouTube에서 만든 악보' },
+];
+const PLAN = [
+  { id: 'p1', title: '5–8마디 오른손 ×3', sub: '템포 75% · A–B 반복', loop: { a: 5, b: 8 }, hands: 'R', rate: .75, min: 4 },
+  { id: 'p2', title: '왼손만 BPM 75', sub: '전곡 · 메트로놈 켬', hands: 'L', rate: .75, min: 3 },
+  { id: 'p3', title: '양손 BPM 50', sub: '전곡 · 대기 모드', hands: 'B', rate: .5, wait: true, min: 5 },
+  { id: 'p4', title: '전곡 도전', sub: '양손 · BPM 100', hands: 'B', rate: 1, min: 2 },
+];
+let planSeq = 5;
+function creditSong(res) {
+  if (res.example || res.auto) return; const s = SONGS[0];
+  if (!s.best || res.score > s.best.score) s.best = { score: res.score, rank: res.rank };
+  if (res.acc < 90) return; const set = new Set(s.done), lo = res.loop ? res.loop.a : 1, hi = res.loop ? res.loop.b : 8;
+  if (res.hands === 'R') { if (lo <= 1 && hi >= 4) set.add(0); if (lo <= 5 && hi >= 8) set.add(1); }
+  if (lo === 1 && hi === 8) set.add(res.hands === 'L' ? 2 : res.hands === 'B' ? 3 : 0);
+  s.done = Array.from(set);
+}
+function renderHome() {
+  $('#lib-count').textContent = SONGS.length + '곡';
+  $('#songs').innerHTML = SONGS.map(s => {
+    const n = Array.isArray(s.secs) ? s.secs.length : s.secs, names = Array.isArray(s.secs) ? s.secs : Array.from({ length: n }, (_, i) => `구간 ${i + 1}`);
+    const cells = names.map((nm, i) => `<i class="${s.done.includes(i) ? 'on' : ''}" title="${nm}${s.done.includes(i) ? ' · 통과' : ''}"></i>`).join('');
+    return `<li class="song">
+      <div style="min-width:0"><span class="song-t">${s.title}${s.isNew ? '<span class="newtag">방금 가져옴</span>' : ''}</span><span class="song-c">${s.composer}</span>
+        <div class="song-m"><span class="lvl">${s.level}</span><span>♩=${s.bpm}</span><span>${s.meter}</span><span>${s.bars}마디</span>${s.src ? `<span class="lvl">· ${s.src}</span>` : ''}</div></div>
+      <div class="song-p"><div class="segs" aria-hidden="true">${cells}</div><span>구간 ${s.done.length}/${n} 통과</span></div>
+      <div class="song-b">${s.best ? `<span class="rk rk-${s.best.rank}">${s.best.rank}</span><span>${fmtInt(s.best.score)}</span>` : '<span class="muted">기록 없음</span>'}</div>
+      <div class="song-a">${s.play ? `<button type="button" class="btn sm" data-song="${s.id}">연습하기</button>` : '<span class="chip">데모 곡만 플레이 가능</span>'}</div>
+    </li>`; }).join('');
+  const left = PLAN.filter(p => !p.done);
+  $('#plan-list').innerHTML = PLAN.map(p => `<li class="pi${p.done ? ' done' : ''}"><input type="checkbox" id="plan-${p.id}" ${p.done ? 'checked' : ''}><label for="plan-${p.id}"><b>${p.title}${p.isNew ? '<span class="newtag">AI 코치 추천</span>' : ''}</b><span>${p.sub}</span></label><button type="button" class="btn sm quiet" data-plan="${p.id}">시작</button></li>`).join('');
+  $('#plan-time').textContent = '약 ' + PLAN.reduce((s, p) => s + (p.min || 3), 0) + '분';
+  $('#plan-left').textContent = left.length ? `${PLAN.length}개 중 ${PLAN.length - left.length}개 끝` : '오늘 연습을 다 끝냈어요';
+  $('#plan-start').disabled = !left.length;
+}
+function renderWeek() {
+  const days = ['일', '월', '화', '수', '목', '금', '토'], today = new Date(2026, 9, 5);
+  $('#week').innerHTML = Array.from({ length: 7 }, (_, i) => { const d = new Date(today); d.setDate(today.getDate() - 6 + i); const on = i >= 1;
+    return `<div class="${i === 6 ? 'today' : ''}"><i class="${on ? 'on' : ''}" title="${d.getMonth() + 1}/${d.getDate()}${on ? ' 연습함' : ''}"></i>${i === 6 ? '오늘' : days[d.getDay()]}</div>`; }).join('');
+}
+function bindHome() {
+  $('#songs').addEventListener('click', e => { const b = e.target.closest('[data-song]'); if (b) applyPlan({ hands: S.hands, rate: S.rate }); });
+  $('#plan-list').addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if (b) { const p = PLAN.find(x => x.id === b.dataset.plan); if (p) applyPlan(p); } });
+  $('#plan-list').addEventListener('change', e => { const p = PLAN.find(x => 'plan-' + x.id === e.target.id); if (p) { p.done = e.target.checked; renderHome(); } });
+  $('#plan-start').addEventListener('click', () => { const p = PLAN.find(x => !x.done); if (p) applyPlan(p); });
+  $('#home-continue').addEventListener('click', () => go('play'));
+  $('#home-import').addEventListener('click', () => go('import'));
+}
+
+/* import */
+const IMP = { src: 'sheet', sheet: { name: 'ode_to_joy_scan.pdf', kind: 'PDF', digital: false }, running: false };
+const PIPES = {
+  audio: [
+    { t: '오디오 가져오기', s: () => IMP.src === 'yt' ? 'YouTube 링크에서 오디오만 추출' : '올린 파일 디코딩 · 44.1kHz', ms: 900, done: '2분 41초 · 스테레오' },
+    { t: '음원 분리', s: 'Demucs로 피아노 / 보컬 / 드럼 / 베이스 나누기', ms: 1700, extra: 'stems', done: '피아노 트랙 사용' },
+    { t: '채보', s: 'Basic Pitch로 피아노 트랙을 음표로 바꾸기', ms: 1300, done: '음표 312개' },
+    { t: '템포·박자 분석', s: '박 위치를 찾아 마디선 맞추기', ms: 800, done: '♩=100 · 4/4 · 박 오차 평균 12ms' },
+    { t: '양손 분리', s: '음역과 성부를 보고 오른손/왼손 나누기', ms: 700, done: '오른손 198음 · 왼손 114음' },
+    { t: '난이도 생성', s: 'Easy / Normal / Original', ms: 900, extra: 'diffs' },
+    { t: '완료', s: '만든 악보를 확인해 주세요', ms: 250 },
+  ],
+  sheet: [
+    { t: '악보 인식', s: 'OMR(Audiveris / oemer)로 이미지 속 음표 읽기', ms: 1500, done: '보표 2단 · 음표 39개 · 신뢰도 96%', skip: () => IMP.sheet.digital },
+    { t: 'MusicXML 파싱', s: '파트·마디·음표 구조로 바꾸기', ms: 800, done: '높은음자리표 1 · 낮은음자리표 1 · 8마디' },
+    { t: '박자 그리드 정렬', s: '4/4 박자선에 음표 시작점 맞추기', ms: 700, done: '♩=100 · 정렬 오차 0' },
+    { t: '완료', s: '인식 결과를 확인해 주세요', ms: 250 },
+  ],
+};
+const pipe = () => IMP.src === 'sheet' ? PIPES.sheet : PIPES.audio;
+const CHECK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.6 3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function renderStepper() {
+  $('#stepper').innerHTML = pipe().map(p => `<li class="st" data-s="pending"><span class="st-k">${CHECK}</span><div style="min-width:0"><div class="st-r"><b>${p.t}</b><span class="st-time">—</span></div><p class="st-sub">${typeof p.s === 'function' ? p.s() : p.s}</p><div class="st-x"></div></div></li>`).join('');
+  $('#imp-total').textContent = '대기 중'; $('#review').hidden = true; $('#imp-run').textContent = '변환 시작';
+}
+function runImport() {
+  if (IMP.running) return; IMP.running = true; renderStepper(); $('#imp-run').disabled = true;
+  const P = pipe(), items = $$('#stepper .st'); let i = 0, total = 0;
+  const step = () => {
+    if (i >= P.length) { IMP.running = false; $('#imp-run').disabled = false; $('#imp-run').textContent = '다시 변환'; $('#imp-total').textContent = `총 ${(total / 1000).toFixed(1)}초`; showReview(); return; }
+    const p = P[i], li = items[i], tm = $('.st-time', li), x = $('.st-x', li);
+    if (p.skip && p.skip()) { li.dataset.s = 'skip'; tm.textContent = '건너뜀'; x.innerHTML = '<p class="st-done">디지털 악보라 인식이 필요 없어요</p>'; i++; step(); return; }
+    li.dataset.s = 'active'; const s0 = performance.now();
+    if (p.extra === 'stems') { x.innerHTML = '<div class="stems">' + [['피아노', 82, 1], ['보컬', 4], ['드럼', 3], ['베이스', 14]].map(([n, v, pn]) => `<span>${n}</span><span class="sb"><i class="${pn ? 'pn' : ''}" data-v="${v}"></i></span><em>${v}%</em>`).join('') + '</div>'; requestAnimationFrame(() => requestAnimationFrame(() => $$('.sb i', x).forEach(e => { e.style.width = e.dataset.v + '%'; }))); }
+    const iv = setInterval(() => { tm.textContent = ((performance.now() - s0) / 1000).toFixed(1) + '초'; }, 100);
+    setTimeout(() => {
+      clearInterval(iv); const el = performance.now() - s0; total += el; li.dataset.s = 'done'; tm.textContent = (el / 1000).toFixed(1) + '초';
+      if (p.extra === 'diffs') { const d = [['diff-easy', 'Easy', 118], ['diff-normal', 'Normal', 204], ['diff-orig', 'Original', 312]].filter(([id]) => $('#' + id).checked); x.innerHTML = '<div class="dchips">' + (d.length ? d.map(([, n, c]) => `<span class="chip">${n} · 음표 ${c}개</span>`).join('') : '<span class="chip">고른 난이도가 없어 Normal만 만들었어요</span>') + '</div>'; }
+      else if (p.done) x.insertAdjacentHTML('beforeend', `<p class="st-done">${p.done}</p>`);
+      i++; step();
+    }, p.ms);
+  };
+  step();
+}
+function showReview() {
+  const sheetSrc = IMP.src === 'sheet';
+  $('#rv-h').textContent = sheetSrc ? '인식 결과 확인' : '만든 악보 확인';
+  $('#rv-conf').textContent = sheetSrc ? (IMP.sheet.digital ? '디지털 악보' : '신뢰도 96%') : '채보 신뢰도 91%';
+  const det = sheetSrc ? [['조성', 'C장조'], ['박자', '4/4'], ['템포', '♩=100'], ['마디', '8마디'], ['손 나누기', '높은음자리표=오른손']] : [['조성', 'C장조'], ['박자', '4/4'], ['템포', '♩=100 (분석)'], ['마디', '8마디'], ['난이도', 'Easy·Normal·Original']];
+  $('#rv-detect').innerHTML = det.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  const lowc = sheetSrc && !IMP.sheet.digital;
+  $('#rv-flag').hidden = !lowc; $('#rv-flag').classList.remove('ok');
+  $('#rv-flag-t').innerHTML = '<b>4마디</b> 점4분음표 + 8분음표로 읽었어요 · 신뢰도 71%';
+  $('#review').hidden = false; renderImpMini(lowc ? 3 : null);
+}
+function renderImpMini(lowconf) {
+  const w = Math.floor($('#imp-mini').clientWidth - 8); if (w <= 0) return;
+  const L = layout(w, { sp: w >= 520 ? 6.6 : 6.2, perLine: w >= 520 ? 4 : 2, from: 0, to: 3 });
+  drawScore($('#imp-svg'), L, { notes: NOTES, lowconf });
+}
+function bindImport() {
+  const setSrc = v => { IMP.src = v; $('#panel-sheet').hidden = v !== 'sheet'; $('#panel-yt').hidden = v !== 'yt'; $('#panel-audio').hidden = v !== 'audio'; $('#diff-set').hidden = v === 'sheet'; renderStepper(); };
+  $$('input[name=src]').forEach(r => r.addEventListener('change', () => setSrc(r.value)));
+  const setSheet = f => {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const kind = ['musicxml', 'xml', 'mxl'].includes(ext) ? 'MusicXML' : ['mid', 'midi'].includes(ext) ? 'MIDI' : ext === 'pdf' ? 'PDF' : ['png', 'jpg', 'jpeg', 'webp'].includes(ext) ? '사진' : '';
+    if (!kind) { toast('MusicXML, MIDI, PDF, 사진 파일만 넣을 수 있어요'); return; }
+    IMP.sheet = { name: f.name, kind, digital: kind === 'MusicXML' || kind === 'MIDI' };
+    $('#fs-type').textContent = kind === '사진' ? 'IMG' : kind === 'MusicXML' ? 'XML' : kind; $('#fs-name').textContent = f.name;
+    $('#fs-meta').textContent = `${(f.size / 1024).toFixed(0)}KB · ${IMP.sheet.digital ? '디지털 악보라 인식 단계를 건너뛰어요' : '악보 인식(OMR)을 거쳐요'}`; renderStepper();
+  };
+  const setAudio = f => { $('#fa-name').textContent = f.name; $('#fa-type').textContent = (f.name.split('.').pop() || 'AUD').toUpperCase().slice(0, 4); $('#fa-meta').textContent = `${(f.size / 1048576).toFixed(1)}MB`; renderStepper(); };
+  $('#file-sheet').addEventListener('change', e => { if (e.target.files[0]) setSheet(e.target.files[0]); });
+  $('#file-audio').addEventListener('change', e => { if (e.target.files[0]) setAudio(e.target.files[0]); });
+  [['#drop-sheet', setSheet], ['#drop-audio', setAudio]].forEach(([sel, fn]) => { const d = $(sel);
+    d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
+    d.addEventListener('dragleave', () => d.classList.remove('over'));
+    d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) fn(f); }); });
+  $('#imp-run').addEventListener('click', runImport);
+  $('#flag-ok').addEventListener('click', () => { $('#rv-flag').classList.add('ok'); $('#rv-flag-t').innerHTML = '<b>4마디</b> 확인했어요 · 점4분음표 + 8분음표'; });
+  $('#flag-fix').addEventListener('click', () => { $('#rv-flag').classList.add('ok'); $('#rv-flag-t').innerHTML = '<b>4마디</b> 4분음표 2개로 고쳤어요 · 원본 악보와 다시 비교해 보세요'; });
+  $('#imp-add').addEventListener('click', () => { const t = $('#imp-title').value.trim() || 'Ode to Joy (가져온 악보)';
+    SONGS.unshift({ id: 'imp' + Date.now(), title: t, composer: 'L. v. Beethoven', level: '초급 1', bpm: +$('#imp-tempo').value || 100, meter: $('#imp-meter').value, bars: 8, secs: 4, done: [], best: null, play: true, isNew: true, src: IMP.src === 'sheet' ? IMP.sheet.kind + '에서 인식' : IMP.src === 'yt' ? 'YouTube에서 만든 악보' : '녹음에서 만든 악보' });
+    toast(`연습실에 '${t}'를 추가했어요`); });
+  $('#imp-play').addEventListener('click', () => applyPlan({ hands: 'R', rate: 1 }));
+  renderStepper();
+}
+
+/* result */
+function histSVG(off, W) {
+  const H = 206, pl = 30, pr = 12, pt = 34, pb = 40, lo = -140, bw = 20, bins = 14, iw = W - pl - pr, ih = H - pt - pb;
+  const cnt = new Array(bins).fill(0); off.forEach(o => { cnt[clamp(Math.floor((o.err - lo) / bw), 0, bins - 1)]++; });
+  const max = Math.max(1, ...cnt), X = v => pl + (v - lo) / 280 * iw, Y = c => pt + ih - c / max * ih;
+  let s = `<svg class="hist" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="빠름·느림 타이밍 분포">`;
+  s += `<rect class="hz" x="${X(-45)}" y="${pt}" width="${X(45) - X(-45)}" height="${ih}"/>`;
+  [max, Math.round(max / 2)].forEach(v => { if (v > 0) s += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${pl - 6}" y="${Y(v) + 3}" text-anchor="end">${v}</text>`; });
+  cnt.forEach((c, k) => { if (!c) return; const v0 = lo + k * bw, x = X(v0) + 1.5, w = X(v0 + bw) - X(v0) - 3, y = Y(c);
+    s += `<rect class="${v0 + bw / 2 < 0 ? 'he' : 'hl'}" x="${x}" y="${y}" width="${w}" height="${pt + ih - y}" rx="2"/>`; s += `<text class="cnt" x="${x + w / 2}" y="${y - 4}">${c}</text>`; });
+  s += `<line class="ax" x1="${pl}" x2="${W - pr}" y1="${pt + ih + .5}" y2="${pt + ih + .5}"/>`;
+  [-140, -90, -45, 0, 45, 90, 140].forEach(v => { s += `<line class="ax" x1="${X(v)}" x2="${X(v)}" y1="${pt + ih}" y2="${pt + ih + 4}"/><text x="${X(v)}" y="${pt + ih + 16}" text-anchor="middle">${v > 0 ? '+' : ''}${v}</text>`; });
+  s += `<text class="lab" x="${pl}" y="${H - 4}">← 빠름 (Early)</text><text class="lab" x="${W - pr}" y="${H - 4}" text-anchor="end">느림 (Late) →</text>`;
+  s += `<text class="lab" x="${X(-45) + 4}" y="14">Perfect 구간 ±45ms</text>`;
+  if (off.length) { const m = clamp(avg(off.map(o => o.err)), -140, 140); s += `<line class="mean" x1="${X(m)}" x2="${X(m)}" y1="${pt}" y2="${pt + ih}"/>`; }
+  return s + '</svg>';
+}
+function renderResult() {
+  const res = S.lastResult || (EXAMPLE = EXAMPLE || exampleResult()), c = res.counts;
+  const st = $('#res-rank'); st.textContent = res.rank; st.className = 'stamp ' + res.rank; st.setAttribute('aria-label', '랭크 ' + res.rank);
+  const d = res.date || new Date();
+  $('#res-meta').textContent = ['Ode to Joy', HANDS_KO[res.hands], '템포 ' + Math.round(res.rate * 100) + '%', res.loop ? `${res.loop.a}–${res.loop.b}마디` : '전곡', res.mode === 'wait' ? '대기 모드' : null, res.auto ? '자동 연주' : null, `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`].filter(Boolean).join(' · ');
+  $('#res-score').textContent = fmtInt(res.score); $('#res-acc').textContent = res.acc.toFixed(2) + '%'; $('#res-combo').textContent = res.maxCombo + ' / ' + res.N;
+  $('#res-badges').innerHTML = (res.pp ? '<span class="badge pp">Perfect Play</span> ' : '') + (res.fc ? '<span class="badge">Full Combo</span>' : `<span class="muted">Full Combo까지 ${res.mode === 'wait' ? '' : `Miss ${c.miss} · `}Wrong ${c.wrong}</span>`);
+  $('#res-ex').hidden = !res.example;
+  const recs = coachRecs(res); $('#res-coach').textContent = recs[0].text + ' ' + recs[0].act;
+  const rows = res.mode === 'wait' ? [['정답 (한 번에)', '×1.0', c.ok, 'perfect'], ['정답 (다시 쳐서)', '×0', c.okw, 'good'], ['틀린 건반', '점수 없음', c.wrong, 'miss']]
+    : [['Perfect', '≤45ms ×1.0', c.perfect, 'perfect'], ['Great', '≤90ms ×0.7', c.great, 'great'], ['Good', '≤140ms ×0.4', c.good, 'good'], ['Miss', '안 침 ×0', c.miss, 'miss'], ['Wrong', '맞는 음 없음', c.wrong, 'miss']];
+  $('#res-jt').innerHTML = rows.map(([n, w, v, col]) => `<tr style="--c:var(--${col})"><td><span class="jn"><i></i>${n}</span></td><td class="jw">${w}</td><td class="jbar"><div><i style="width:${Math.min(100, v / Math.max(1, res.N) * 100)}%"></i></div></td><td class="jc">${v}</td></tr>`).join('');
+  $('#jt-n').textContent = `채점한 음 ${res.N}개`;
+  const hw = Math.floor($('#res-hist').clientWidth) || 520;
+  if (res.mode === 'wait') { $('#res-hist').innerHTML = '<p class="muted" style="padding:24px 0">대기 모드에서는 맞았는지 틀렸는지만 세요. 타이밍 분포는 일반 모드에서 볼 수 있어요.</p>'; $('#hist-sum').textContent = ''; }
+  else { $('#res-hist').innerHTML = histSVG(res.offsets, hw); const e = res.offsets.filter(o => o.err < 0).length, l = res.offsets.length - e, m = avg(res.offsets.map(o => o.err));
+    $('#hist-sum').textContent = `빠름 ${e} · 느림 ${l} · 평균 ${m > 0 ? '+' : m < 0 ? '−' : '±'}${Math.round(Math.abs(m))}ms`; }
+  const sw = $('#res-sheet-wrap'), w = Math.floor(sw.clientWidth);
+  if (w) { const wide = w >= 640, L = layout(w, { sp: wide ? 7.4 : 7, perLine: wide ? 4 : 2 }), r = drawScore($('#res-sheet'), L, { notes: NOTES, tints: res.measures.map(x => x ? x.acc : null) });
+    const map = new Map(res.notes.map(n => [n.i, n]));
+    NOTES.forEach(n => { const ref = r.refs[n.i]; if (!ref) return; const s = map.get(n.i); ref.grp.setAttribute('class', s ? 'n j j-' + s.j : 'n off'); });
+    res.wrongs.forEach(g => drawGhost(r.lay.ghost, L, g)); }
+  const ul = $('#res-recs'); ul.dataset.key = res.score + '_' + res.N;
+  ul.innerHTML = recs.map((r, i) => r.offset != null
+    ? `<li class="rec"><span></span><label><b>${r.text}</b><span>${r.act}</span></label><button type="button" class="btn sm" data-off="${r.offset}">보정 ${r.offset > 0 ? '+' : ''}${r.offset}ms 적용</button></li>`
+    : `<li class="rec${r.added ? ' added' : ''}"><input type="checkbox" id="rec-${i}" data-rec="${i}" ${r.added ? 'disabled' : 'checked'}><label for="rec-${i}"><b>${r.text}</b><span>${r.act}</span></label><span></span></li>`).join('');
+  ul._recs = recs; $('#rec-note').textContent = '';
+}
+function bindResult() {
+  $('#res-again').addEventListener('click', () => { const r = S.lastResult; if (r) applyPlan({ loop: r.loop, hands: r.hands, rate: r.rate, wait: r.mode === 'wait' }); else startPlay(); });
+  $('#res-weak').addEventListener('click', () => { const recs = $('#res-recs')._recs || [], p = recs.find(r => r.plan && r.plan.loop); applyPlan(p ? p.plan : { loop: { a: 5, b: 8 }, hands: 'R', rate: .75 }); });
+  $('#res-home').addEventListener('click', () => go('home'));
+  $('#res-recs').addEventListener('click', e => { const b = e.target.closest('[data-off]'); if (!b) return; S.offset = +b.dataset.off; syncControls(); b.disabled = true; b.textContent = '적용했어요'; toast(`지연 보정을 ${S.offset > 0 ? '+' : ''}${S.offset}ms로 맞췄어요`); });
+  $('#rec-add').addEventListener('click', () => {
+    const ul = $('#res-recs'), recs = ul._recs || []; let n = 0;
+    $$('input[data-rec]', ul).forEach(cb => { const r = recs[+cb.dataset.rec]; if (cb.checked && !cb.disabled && r && r.plan) { PLAN.push(Object.assign({ id: 'p' + planSeq++, isNew: true }, r.plan)); r.added = true; cb.disabled = true; cb.closest('.rec').classList.add('added'); n++; } });
+    if (n) { toast(`오늘의 연습에 ${n}개를 추가했어요`); $('#rec-note').textContent = '연습실 화면의 오늘의 연습 목록에 들어갔어요'; } else toast('추가할 항목을 골라 주세요');
+  });
+}
+
+/* teacher (illustrative example data) */
+const STUDENTS = [
+  { name: '김민수', who: '초등 3학년', min: [12, 0, 18, 22, 15, 0, 20], acc: [78, 80, 79, 83, 82, 84, 86], song: 'Ode to Joy', prog: [6, 8], weak: [4, 8], last: '오늘', quest: '4·8마디 점음표 리듬 템포 75% ×3' },
+  { name: '이지우', who: '중학 1학년', min: [25, 30, 0, 28, 35, 20, 30], acc: [91, 92, 93, 92, 94, 95, 95], song: 'Minuet in G major', prog: [24, 32], weak: [17], last: '어제', quest: '17마디 왼손 템포 75% ×3' },
+  { name: '박서연', who: '성인 · 다시 시작', min: [0, 15, 0, 0, 20, 0, 10], acc: [70, 72, 71, 74, 73, 76, 75], song: 'Gymnopédie No. 1', prog: [12, 78], weak: [9, 10], last: '3일 전', quest: '9–10마디 대기 모드로 음 익히기' },
+  { name: '최하준', who: '초등 5학년', min: [10, 12, 10, 14, 10, 12, 0], acc: [88, 90, 91, 93, 94, 96, 96], song: 'Twinkle Twinkle Little Star', prog: [12, 12], weak: [], last: '어제', quest: '새 곡: Ode to Joy 오른손' },
+  { name: '정예린', who: '성인', min: [30, 0, 0, 0, 0, 0, 0], acc: [68, 66, 70, 69, 67, 71, 66], song: 'Für Elise', prog: [16, 103], weak: [12, 13, 14], last: '6일 전', quest: '12–14마디 오른손 ×3, 하루 10분' },
+];
+function renderTeacher() {
+  const totMin = STUDENTS.reduce((s, x) => s + x.min.reduce((a, b) => a + b, 0), 0), meanAcc = avg(STUDENTS.map(x => x.acc[x.acc.length - 1]));
+  $('#t-sum').innerHTML = [['학생', STUDENTS.length + '명'], ['이번 주 연습 합계', `${Math.floor(totMin / 60)}시간 ${totMin % 60}분`], ['최근 평균 정확도', meanAcc.toFixed(0) + '%'], ['이번 주 퀘스트 완료', '7 / 9']].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  const bars = a => { const mx = 40; return `<svg width="70" height="22" viewBox="0 0 70 22" aria-hidden="true">${a.map((v, i) => `<rect x="${i * 10}" y="${22 - Math.max(1.5, v / mx * 22)}" width="7" height="${Math.max(1.5, v / mx * 22)}" rx="1" fill="${v ? 'var(--rh)' : 'var(--rule)'}"/>`).join('')}</svg>`; };
+  const spark = a => { const lo = 60, hi = 100, pts = a.map((v, i) => [i * 13 + 3, 22 - (v - lo) / (hi - lo) * 19]); const last = pts[pts.length - 1];
+    return `<svg width="86" height="26" viewBox="0 0 86 26" aria-hidden="true"><polyline points="${pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--ink-3)" stroke-width="1.4" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1].toFixed(1)}" r="2.6" fill="var(--accent)"/></svg>`; };
+  $('#t-table').innerHTML = '<thead><tr><th scope="col">학생</th><th scope="col">이번 주 연습</th><th scope="col">정확도 (최근 7회)</th><th scope="col">진도</th><th scope="col">약한 마디</th><th scope="col">퀘스트</th></tr></thead><tbody>' +
+    STUDENTS.map((s, i) => { const m = s.min.reduce((a, b) => a + b, 0), a = s.acc[s.acc.length - 1];
+      return `<tr><td class="nm"><b>${s.name}</b><span>${s.who} · 최근 ${s.last === '6일 전' ? `<span class="alert">${s.last}</span>` : s.last}</span></td>
+        <td><div class="spark"><span class="num">${m}분</span>${bars(s.min)}</div></td>
+        <td><div class="spark"><span class="num">${a}%</span>${spark(s.acc)}</div></td>
+        <td>${s.song}<span class="pg"><i style="width:${s.prog[0] / s.prog[1] * 100}%"></i></span><span class="muted" style="font-size:11.5px">${s.prog[0]}/${s.prog[1]}마디</span></td>
+        <td><div class="wk">${s.weak.length ? s.weak.map(w => `<span>${w}마디</span>`).join('') : '<span class="muted" style="background:none;color:var(--ink-3)">없음</span>'}</div></td>
+        <td class="q"><button type="button" class="btn sm" id="quest-${i}" data-q="${i}">퀘스트 보내기</button><small>${s.quest}</small></td></tr>`; }).join('') + '</tbody>';
+  $('#t-table').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (!b || b.disabled) return; const s = STUDENTS[+b.dataset.q]; b.disabled = true; b.textContent = '보냄'; toast(`${s.name}에게 '${s.quest}' 퀘스트를 보냈어요 (예시)`); });
+}
+
+/* =====================================================================
+   10. theme, fonts, boot
+   ===================================================================== */
+function isDark() { const a = document.documentElement.getAttribute('data-theme'); return a ? a === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; }
+function setTheme(t) { document.documentElement.setAttribute('data-theme', t); store.set('sf-theme', t); readTokens(); }
+function loadMusicFont() {
+  if (!document.fonts || !document.fonts.load) return;
+  document.fonts.load('100px "Noto Music"', '\u{1D11E}\u{1D122}').then(faces => {
+    if (!faces || !faces.length) return;
+    const c = document.createElement('canvas').getContext('2d'); c.font = '100px "Noto Music"';
+    const mm = ch => { const m = c.measureText(ch); return { a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent, l: m.actualBoundingBoxLeft, r: m.actualBoundingBoxRight }; };
+    const g = mm('\u{1D11E}'), f = mm('\u{1D122}');
+    if (!((g.a + g.d) > 0 && (g.l + g.r) > 0 && (g.a + g.d) / (g.l + g.r) > 1.7 && (f.a + f.d) > 0)) return;
+    CLEF.glyph = true; CLEF.g = g; CLEF.f = f;
+    if (cur === 'play') sheet.render(true); if (cur === 'result') renderResult(); if (!$('#review').hidden) renderImpMini($('#rv-flag').hidden ? null : 3);
+  }).catch(() => {});
+}
+function boot() {
+  grab();
+  const th = store.get('sf-theme'); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
+  readTokens();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+  $('#theme-btn').addEventListener('click', () => setTheme(isDark() ? 'light' : 'dark'));
+  const v = store.get('sf-view'); if (v === 'sheet' || v === 'both' || v === 'fall') { S.view = v; els.stage.dataset.view = v; $('#view-' + v).checked = true; }
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+  $('#brand-link').addEventListener('click', e => { e.preventDefault(); go('play'); });
+  addEventListener('pointerdown', () => audio.unlock(), { capture: true, passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S.mode === 'play') setPaused(true); });
+  bindPlayControls(); bindHome(); bindImport(); bindResult();
+  buildKeys(); syncControls(); renderHome(); renderWeek(); renderTeacher();
+  resetRun('demo'); primeDemo(10.6);
+  const h = (location.hash || '').slice(1); go(SCREENS.includes(h) ? h : 'play');
+  let rz = 0; const ro = new ResizeObserver(() => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (cur === 'play') { sheet.render(); fall.resize(); } }); });
+  ro.observe(els.sheetWrap); ro.observe($('#fall'));
+  let rw = innerWidth; addEventListener('resize', () => { if (Math.abs(innerWidth - rw) < 4) return; rw = innerWidth; if (cur === 'result') renderResult(); if (cur === 'import' && !$('#review').hidden) renderImpMini($('#rv-flag').hidden ? null : 3); });
+  initMidi(); loadMusicFont(); coachSoon(0);
+  requestAnimationFrame(frame);
+}
+boot();
+})();
+</script>
