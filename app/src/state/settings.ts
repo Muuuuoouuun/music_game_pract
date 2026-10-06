@@ -3,6 +3,8 @@ import type { HandMode } from '../core/engine';
 import { Emitter, load, save } from './store';
 
 export type ViewMode = 'sheet' | 'both' | 'hw';
+/** In-play HUD: 집중 (only what is needed) or 상세 (side stats and meters). */
+export type HudMode = 'focus' | 'detail';
 
 export interface Settings {
   view: ViewMode;
@@ -19,6 +21,9 @@ export interface Settings {
   /** Play the built-in synth for MIDI keys (off: the piano makes its own sound). */
   soundMidi: boolean;
   autoplay: boolean;
+  /** 건반을 누르면 시작: a MIDI key press on the ready screen starts the run. */
+  keyStart: boolean;
+  hud: HudMode;
   songId: string | null;
 }
 
@@ -36,6 +41,8 @@ const DEFAULTS: Settings = {
   soundKeys: true,
   soundMidi: false,
   autoplay: false,
+  keyStart: true,
+  hud: 'focus',
   songId: null,
 };
 
@@ -44,6 +51,8 @@ function sanitize(s: Partial<Settings>): Settings {
   if (!['sheet', 'both', 'hw'].includes(v.view)) v.view = 'both';
   if (![0.5, 0.75, 1].includes(v.rate)) v.rate = 1;
   if (!['R', 'L', 'B'].includes(v.hands)) v.hands = 'R';
+  if (v.hud !== 'detail') v.hud = 'focus';
+  v.keyStart = v.keyStart !== false;
   v.offset = Math.max(OFFSET_MIN, Math.min(OFFSET_MAX, Math.round(Number(v.offset) || 0)));
   v.autoplay = false; // never resume into auto-play
   return v;

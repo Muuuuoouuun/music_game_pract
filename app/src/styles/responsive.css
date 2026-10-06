@@ -1,18 +1,4 @@
-@media (max-width:1179px){
-  .drawer{display:none;position:absolute;left:16px;right:16px;top:calc(100% + 6px);z-index:9;padding:14px 16px;gap:12px;border-radius:12px;background:#120e36;border:1px solid var(--rim-hi);box-shadow:0 24px 50px -18px rgba(0,0,0,.9);max-height:min(66dvh,520px);overflow:auto}
-  .controls.open .drawer{display:grid}
-  .pg{display:grid;gap:12px;align-content:start}
-  .pg-main{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 18px}
-  .pg-more,.controls.open .pg-more{display:grid;position:static;width:auto;padding:12px 0 0;border:0;border-top:1px dashed var(--rim);border-radius:0;background:none;box-shadow:none}
-}
 @media (max-width:979px){
-  .hud-l{display:none}
-  .acc-mini{display:block}
-  .meters{position:static;flex:none;flex-direction:row;gap:16px;padding:8px 16px 0}
-  .meter{flex:1;flex-direction:row;gap:8px}
-  .meter span{width:44px}
-  .meter .track{height:6px;width:auto;flex:1;max-height:none}
-  .meter .fill{top:0;bottom:0;right:auto;height:auto;width:calc(var(--v,1)*100%)}
   .res-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"rank rank" "jb hist" "sheet sheet" "coach coach"}
 }
 @media (max-width:860px){
@@ -26,30 +12,46 @@
   .topbar .chip{display:none}
   .tabs{margin-inline:auto 0}
   .tab{padding:6px 9px;font-size:12.5px}
-  .score{font-size:22px}
-  .ph-title{font-size:15px}
-  .play-head{padding:8px 16px 6px}
-  .controls{gap:6px 8px;padding:7px 16px}
-  .controls .btn{padding:7px 11px}
-  #btnRestart span{display:none}
-  .seg-view{order:5;flex:1 1 100%;display:flex}
-  .seg-view button{flex:1;padding:6px 4px}
   .offset input{width:90px}
   .res-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"rank" "jb" "hist" "sheet" "coach"}
   .coach-top{flex-direction:column;align-items:flex-start;gap:8px}
   .variants{grid-template-columns:minmax(0,1fr)}
   .yt{grid-template-columns:96px minmax(0,1fr)}
   .card{width:200px}
-  .ov-hint{display:none}
-  .ov-card{padding:12px 14px;gap:8px}
-  .ov-card .btn.cta{font-size:15px;padding:10px 20px}
-  .view[data-view="both"] .ov-eyebrow{display:none}
-  .coach-line{gap:8px;padding-block:7px}
-  .coach-line p{font-size:12.5px}
-  .coach-line .coach-tag b{display:none}
   .fgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .res-actions .btn{flex:1 1 calc(50% - 5px);padding:12px 10px}
+}
+@media (max-width:760px){
+  .rd-card{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  /* 준비: one scrolling column, the start button pinned at the bottom */
+  .ready{padding:0;place-items:stretch}
+  .rd-card{display:flex;flex-direction:column;gap:12px;border-radius:0;border:0;padding:14px 16px 0;background:rgba(13,10,38,.95)}
+  .rd-main{display:contents}
+  .rd-top{order:1}.rd-title{order:2}.rd-comp{order:3}.rd-facts{order:4}.rd-best{order:5}.rd-opts{order:6}.rd-dev{order:7}.rd-hint{order:8}
+  .rd-go{order:9;position:sticky;bottom:0;margin:0 -16px;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(13,10,38,0),rgba(13,10,38,.97) 28%)}
+  .rd-title{font-size:22px}
+  .rd-facts{gap:4px 14px}
+  .rd-facts dd{font-size:15px}
+  .rd-best{padding:8px 10px}
+  .rd-best b{font-size:17px}
+  .og{grid-template-columns:62px minmax(0,1fr);gap:6px 10px}
+  .og .seg{justify-self:stretch;display:flex}
+  .og .seg button{flex:1;padding:7px 4px}
+  .rd-opts .seg button{font-size:13px}
+  .more-body{grid-template-columns:minmax(0,1fr)}
+  .rd-start{min-height:52px}
+  .fsbtn span{display:none}
+  /* 연주 중 */
+  .fhud{padding-right:12px}
+  .fscore .score{font-size:15px}
+  .pm-card{padding:18px 16px}
+  .pm-stats dd{font-size:16px}
+  .pm-actions .btn{font-size:13px;padding:8px 6px}
+  .pm-coach .coach-tag b{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
-  .judge.pop,.fs.pop{animation:none!important;opacity:1}
+  .judge.pop,.fs.pop,.big.pop{animation:none!important;opacity:1}
 }

@@ -38,9 +38,25 @@ const play = new PlayScreen($('#scr-play'), {
   },
   onPass: (r) => (pendingResult = r),
 });
+/** The settings a result was played with (an example result keeps the current ones). */
+const planOf = (r: ResultData) =>
+  r.example
+    ? { songId: play.song?.id ?? r.songId, hands: settings.hands, rate: settings.rate, wait: settings.wait, loop: settings.loop.on ? settings.loop : undefined }
+    : { songId: r.songId, hands: r.hands, rate: r.rate, wait: r.wait, loop: r.loop ?? undefined };
 const result = new ResultScreen($('#scr-result'), {
-  retry: (r) => {
-    play.applyPlan(r.example ? { songId: play.song?.id ?? r.songId, hands: settings.hands, rate: settings.rate } : { songId: r.songId, hands: r.hands, rate: r.rate, wait: r.wait, loop: r.loop ?? undefined });
+  retry: (r) => play.applyPlan(planOf(r)),
+  adjust: (r) => {
+    const p = planOf(r);
+    play.prepare(p.songId, { hands: p.hands, rate: p.rate, wait: !!p.wait, loop: p.loop ? { on: true, ...p.loop } : { ...settings.loop, on: false } });
+    go('play');
+  },
+  next: (r) => {
+    const list = songs();
+    const i = list.findIndex((s) => s.id === r.songId);
+    const nxt = list[(i + 1) % list.length];
+    if (!nxt) return;
+    play.prepare(nxt.id, { loop: { ...settings.loop, on: false } });
+    go('play');
   },
   startPlan: (p) => play.applyPlan(p),
   offsetChanged: () => play.settingsUpdated(),
@@ -49,9 +65,10 @@ const home = new HomeScreen($('#scr-home'), {
   midi: hub.midi,
   currentSongId: () => play.song?.id ?? null,
   prepare: (id, patch) => play.prepare(id, patch),
+  // 무대 시작 lands on the ready card (settings + 시작), not straight into the count-in
   play: (id) => {
-    if (id !== play.song?.id) play.setSong(id);
-    play.startPlay();
+    play.prepare(id);
+    go('play');
   },
   startPlan: (p) => play.applyPlan(p),
   songRemoved: (id) => {
@@ -62,7 +79,7 @@ const importer = new ImportScreen($('#scr-import'), {
   added: (id, patch) => {
     if (patch) {
       play.prepare(id, patch);
-      play.startPlay();
+      go('play');
     }
   },
 });
@@ -147,7 +164,8 @@ function renderChip(): void {
     : m.status.kind === 'denied' ? 'MIDI 막힘 · PC 키보드로 플레이 중' : 'PC 키보드로 플레이 중';
   document.querySelector('.tabs')?.classList.toggle('midi-on', !!name);
   if (name && name !== lastName) toast(`MIDI 건반 연결됨: ${name}`);
-  else if (!name && lastName) toast('MIDI 건반 연결이 끊겼어요. PC 키보드로 계속할 수 있어요.');
+  // during a run the pause menu says it instead (the play screen pauses on disconnect)
+  else if (!name && lastName && !(route === 'play' && play.phase !== 'ready')) toast('MIDI 건반 연결이 끊겼어요. PC 키보드로 계속할 수 있어요.');
   lastName = name;
 }
 hub.midi.onChange(renderChip);

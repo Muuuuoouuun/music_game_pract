@@ -21,7 +21,7 @@ export interface HomeDeps {
   currentSongId(): string | null;
   /** Load a song with settings and show the attract demo. */
   prepare(songId: string, patch: Partial<Settings>): void;
-  /** Start playing a song right away with the current settings. */
+  /** Open a song on the play screen's ready card (곡 준비) with the current settings. */
   play(songId: string): void;
   startPlan(p: PlanItem): void;
   songRemoved(id: string): void;

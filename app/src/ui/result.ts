@@ -22,7 +22,12 @@ const JUDGES = {
 const heat = (a: number) => `color-mix(in oklab, var(--j-great) ${Math.round(clamp((a - 0.6) / 0.4, 0, 1) * 100)}%, var(--j-wrong))`;
 
 export interface ResultDeps {
+  /** 다시 하기: same settings, straight to the count-in. */
   retry(r: ResultData): void;
+  /** 설정 바꿔 다시: the ready card with this run's settings. */
+  adjust(r: ResultData): void;
+  /** 다음 곡: the ready card of the next song on the shelf. */
+  next(r: ResultData): void;
   startPlan(p: Omit<PlanItem, 'id'>): void;
   offsetChanged(): void;
 }
@@ -98,8 +103,10 @@ export class ResultScreen {
         </div>
       </div>
       <div class="res-actions">
-        <button class="btn cta" id="btnRetry" type="button">다시하기</button>
+        <button class="btn cta" id="btnRetry" type="button">${ICON.restart}다시 하기</button>
+        <button class="btn" id="btnAdjust" type="button">설정 바꿔 다시</button>
         <button class="btn" id="btnWeak" type="button">약한 구간 반복</button>
+        <button class="btn" id="btnNext" type="button">다음 곡 ${ICON.play}</button>
         <a class="btn ghost" href="#home">곡 선택</a>
       </div>
     </div>`;
@@ -132,6 +139,8 @@ export class ResultScreen {
       } else toast('추가할 항목을 골라 주세요.');
     });
     $('#btnRetry', this.root).addEventListener('click', () => this.shown && this.deps.retry(this.shown));
+    $('#btnAdjust', this.root).addEventListener('click', () => this.shown && this.deps.adjust(this.shown));
+    $('#btnNext', this.root).addEventListener('click', () => this.shown && this.deps.next(this.shown));
     $('#btnWeak', this.root).addEventListener('click', () => {
       const p = this.recs.find((r) => r.plan?.loop)?.plan;
       const R = this.shown;
