@@ -50,6 +50,20 @@ export interface ChartMeta {
   durationMs: number;
 }
 
+/**
+ * A recording attached to the chart (the song the chart was transcribed from, or any
+ * backing track). The blob itself lives in the audio store (IndexedDB) under `id`.
+ */
+export interface ChartAudio {
+  id: string;
+  fileName?: string;
+  durationMs: number;
+  /** Audio position (ms into the file) that plays at chart time 0. */
+  offsetMs: number;
+  /** 0–1 playback gain for the backing track. */
+  gain: number;
+}
+
 export interface Chart {
   schema: 'keystage.chart/v1';
   meta: ChartMeta;
@@ -61,6 +75,7 @@ export interface Chart {
    * otherwise generated from the notes. Optional: the highway works without it.
    */
   musicXml?: string;
+  audio?: ChartAudio;
 }
 
 export function sortNotes(notes: ChartNote[]): ChartNote[] {
