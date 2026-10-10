@@ -45,7 +45,7 @@ export class HomeScreen {
           <h1 class="h-disp">진짜 건반이 컨트롤러다.</h1>
           <p class="lede">전자피아노나 MIDI 건반을 연결하고, 악보와 떨어지는 노트를 함께 보며 직접 연주하세요. 건반이 없으면 PC 키보드나 화면 건반으로도 칠 수 있어요.</p>
         </div>
-        <div class="head-side"><a class="btn ghost" href="#import">+ 새 곡 만들기</a></div>
+        <div class="head-side"><a class="btn ghost" href="#import">+ 새 곡 만들기</a> <a class="btn ghost" href="#edit/new" title="빈 악보에 직접 노트를 그려요">✎ 직접 쓰기</a></div>
       </div>
       <a class="dev-card" id="homeDev" href="#device" aria-label="건반 연결 확인"></a>
       <div class="shelf" id="shelf" role="list" aria-label="곡 목록"></div>
@@ -145,6 +145,7 @@ export class HomeScreen {
         <div class="best-grid" aria-label="손 모드별 최고 기록">${rows}</div>
         <div class="card-actions">
           <button class="btn cta" type="button" data-play="${esc(s.id)}">${ICON.play}무대 시작</button>
+          <a class="btn sm ghost" href="#edit/${encodeURIComponent(s.id)}" aria-label="${esc(s.title)} 편집" title="${s.builtin ? '편집한 사본을 곡 목록에 저장해요' : '노트·타이밍 교정'}">편집</a>
           ${s.builtin ? '' : `<button class="btn sm ghost del" type="button" data-del="${esc(s.id)}" aria-label="${esc(s.title)} 삭제" title="곡 목록에서 지우기">삭제</button>`}
         </div>
       </div></article>`;

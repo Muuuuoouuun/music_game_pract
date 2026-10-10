@@ -14,6 +14,7 @@ import { libraryChanged, songs } from './state/library';
 import { loadLastResult, recordsChanged, seedPlan, type ResultData } from './state/records';
 import { settings } from './state/settings';
 import { DeviceScreen } from './ui/device';
+import { EditorScreen } from './ui/editor';
 import { $, toast } from './ui/dom';
 import { clamp } from './ui/format';
 import { HomeScreen } from './ui/home';
@@ -21,8 +22,14 @@ import { ImportScreen } from './ui/import';
 import { PlayScreen } from './ui/play';
 import { ResultScreen } from './ui/result';
 
-type Route = 'home' | 'import' | 'play' | 'result' | 'device';
-const ROUTES: Route[] = ['home', 'import', 'play', 'result', 'device'];
+type Route = 'home' | 'import' | 'play' | 'result' | 'device' | 'edit';
+const ROUTES: Route[] = ['home', 'import', 'play', 'result', 'device', 'edit'];
+/** `#edit/<songId>` carries an argument; every other route is bare. */
+function routeOf(hash: string): { r: Route; arg?: string } {
+  if (hash.startsWith('#edit/')) return { r: 'edit', arg: decodeURIComponent(hash.slice(6)) || 'new' };
+  const r = hash.slice(1) as Route;
+  return { r: ROUTES.includes(r) && r !== 'edit' ? r : 'home' };
+}
 let route: Route = 'play';
 
 const hub = new InputHub();
@@ -84,6 +91,12 @@ const importer = new ImportScreen($('#scr-import'), {
   },
 });
 const device = new DeviceScreen($('#scr-device'), hub);
+const editor = new EditorScreen($('#scr-edit'), {
+  saved: (id) => {
+    if (play.song?.id === id) play.setSong(id, true);
+  },
+  close: () => go('home'),
+});
 device.onOffsetChange = () => play.settingsUpdated();
 
 let pendingResult: ResultData | null = loadLastResult();
@@ -100,18 +113,20 @@ function go(r: Route): void {
   else apply(r);
 }
 
-function apply(r: Route): void {
+function apply(r: Route, arg?: string): void {
   const prev = route;
   route = r;
   if (prev !== r) {
     if (prev === 'play') play.leave();
     if (prev === 'device') device.leave();
     if (prev === 'import') importer.leave();
+    if (prev === 'edit') editor.leave();
   }
   for (const s of ROUTES) {
     $('#scr-' + s).hidden = s !== r;
-    $('#tab-' + s).setAttribute('aria-selected', String(s === r));
+    document.getElementById('tab-' + s)?.setAttribute('aria-selected', String(s === r));
   }
+  if (r === 'edit') editor.open(arg ?? 'new');
   if (r === 'play') play.enter();
   if (r === 'home') home.render();
   if (r === 'device') device.enter();
@@ -126,8 +141,14 @@ function apply(r: Route): void {
 }
 
 window.addEventListener('hashchange', () => {
-  const r = location.hash.slice(1) as Route;
-  apply(ROUTES.includes(r) ? r : 'home');
+  const { r, arg } = routeOf(location.hash);
+  // Leaving the editor with unsaved changes: ask first, stay on the editor meanwhile.
+  if (route === 'edit' && r !== 'edit' && editor.dirty && !editor.leaving) {
+    editor.askLeave(location.hash || '#home');
+    location.hash = '#edit/' + encodeURIComponent(editor.songId ?? 'new');
+    return;
+  }
+  apply(r, arg);
 });
 
 /* ---------------- input → sound, screens ---------------- */
@@ -147,6 +168,7 @@ window.addEventListener('pointerdown', unlock, true);
 window.addEventListener('keydown', (e) => {
   unlock();
   if (route === 'play' && play.handleKey(e)) e.preventDefault();
+  if (route === 'edit' && editor.handleKey(e)) e.preventDefault();
 });
 
 /* ---------------- MIDI status chip ---------------- */
@@ -196,6 +218,7 @@ result.mount();
 home.mount();
 importer.mount();
 device.mount();
+editor.mount();
 renderChip();
 
 const first = songs()[0];
@@ -204,8 +227,9 @@ play.setSong(settings.songId, true);
 libraryChanged.on(() => route === 'home' && home.render());
 recordsChanged.on(() => route === 'home' && home.render());
 
-const initial = location.hash.slice(1) as Route;
-apply(ROUTES.includes(initial) ? initial : 'play');
+const initial = routeOf(location.hash);
+if (!location.hash) apply('play');
+else apply(initial.r, initial.arg);
 
 // Ask for MIDI right away; Chrome may show a permission prompt, and the device
 // screen's 다시 연결 button retries from a user gesture.
@@ -219,6 +243,7 @@ function frame(now: number): void {
   lastNow = now;
   try {
     if (route === 'play') play.frame(now, dt);
+    if (route === 'edit') editor.frame(now);
   } catch (e) {
     if (!frameErr) {
       frameErr = true;

@@ -123,6 +123,29 @@ export function addUserChart(chart: Chart): { song: LibrarySong; persisted: bool
   return { song: getSong(id)!, persisted };
 }
 
+/**
+ * Saves an edited chart: replaces an existing imported song in place (same id, same
+ * shelf position) or adds it as a new one. `persisted` is false when storage was full.
+ */
+export function saveUserChart(chart: Chart): { song: LibrarySong; persisted: boolean } {
+  const id = chart.meta.id;
+  const i = userIndex.findIndex((u) => u.id === id);
+  if (i < 0) return addUserChart(chart);
+  const prev = userIndex[i];
+  const entry: UserIndexEntry = {
+    ...prev, title: chart.meta.title, composer: chart.meta.composer ?? prev.composer, level: estimateLevel(chart), bpm: Math.round(chart.meta.bpm),
+    timeSignature: tsLabel(chart.meta.timeSignature), measures: chart.measures.length, kind: chart.meta.source.kind,
+  };
+  const persisted = save('song.' + id, chart);
+  if (persisted) volatile.delete(id);
+  else volatile.set(id, chart);
+  userIndex = userIndex.map((u) => (u.id === id ? entry : u));
+  save('songs', userIndex.filter((u) => !volatile.has(u.id)));
+  cache.set(id, chart);
+  libraryChanged.emit();
+  return { song: getSong(id)!, persisted };
+}
+
 export function removeUserSong(id: string): void {
   userIndex = userIndex.filter((u) => u.id !== id);
   remove('song.' + id);

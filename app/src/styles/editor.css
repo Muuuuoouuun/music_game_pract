@@ -1,0 +1,73 @@
+/* 악보 편집 (#edit): two wrapping toolbars, the piano roll, a side panel that becomes a bottom sheet on phones. */
+#scr-edit{display:flex;flex-direction:column;overflow:hidden;position:relative}
+.ed-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px;background:rgba(13,10,38,.92)}
+.ed-bar.sub{padding-top:0;padding-bottom:8px;border-bottom:1px solid var(--rim)}
+.ed-sep{width:1px;height:22px;background:var(--rim);margin:0 2px;flex:none}
+.ed-grow{flex:1 1 0}
+.ed-bar .ed-title{width:220px;height:32px;font-weight:600}
+.ed-bar .seg button{min-height:30px}
+.ed-bar .btn.sm{min-height:30px}
+.ed-chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.ed-chk input{accent-color:var(--spot);margin:0}
+.ed-vol{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.ed-vol input{width:90px;accent-color:var(--spot)}
+.ed-snap{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.ed-kbd{font-size:11.5px;color:var(--faint);white-space:nowrap}
+.ed-menu{position:relative}
+.ed-menu summary{list-style:none;cursor:pointer}
+.ed-menu summary::-webkit-details-marker{display:none}
+.ed-menu>div{position:absolute;top:calc(100% + 4px);right:0;z-index:7;display:flex;flex-direction:column;gap:2px;min-width:170px;padding:6px;border-radius:10px;background:#1b1646;border:1px solid var(--rim-hi);box-shadow:0 14px 40px -10px rgba(0,0,0,.7)}
+.ed-menu>div button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;color:var(--text);white-space:nowrap}
+.ed-menu>div button:hover{background:var(--stage-hi)}
+.ed-body{flex:1;min-height:0;display:flex;position:relative}
+.ed-stage{flex:1;min-width:0;position:relative;background:var(--ink-2)}
+.ed-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.ed-side{flex:none;width:280px;overflow-y:auto;border-left:1px solid var(--rim);background:var(--ink-2);padding:12px;display:flex;flex-direction:column;gap:12px;scrollbar-color:var(--rim) transparent}
+.ed-side-head{display:none;justify-content:space-between;align-items:center}
+.ed-panel{background:var(--stage);border:1px solid var(--rim);border-radius:12px;padding:12px 12px 10px}
+.ed-panel h2{font-size:12.5px;margin-bottom:10px;color:var(--spot)}
+.ed-row{display:grid;grid-template-columns:78px minmax(0,1fr);align-items:center;gap:6px 8px;margin-bottom:8px}
+.ed-row label{font-size:12.5px;color:var(--dim);word-break:keep-all}
+.ed-row .inp{height:32px;font-family:var(--f-mono);font-size:13px;padding:0 8px}
+.ed-row .sel{height:32px;width:100%}
+.ed-ctl{display:flex;gap:5px;align-items:center;min-width:0}
+.ed-ctl.ed-wrap{flex-wrap:wrap}
+.ed-ctl .inp{flex:1 1 60px;min-width:60px}
+.ed-ctl .btn.sm{padding:6px 8px;letter-spacing:-.01em}
+.ed-unit{font-size:12px;color:var(--faint)}
+.ed-note{margin:6px 0 2px;font-size:12px;color:var(--faint);line-height:1.5}
+.ed-note b{color:var(--dim);font-weight:600}
+.ed-hr{border:0;border-top:1px dashed var(--rim);margin:10px 0}
+.ed-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:0}
+.ed-facts.one{grid-template-columns:1fr;gap:5px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--rim)}
+.ed-facts div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;min-width:0}
+.ed-facts dt{color:var(--dim);flex:none}
+.ed-facts dd{margin:0;font-family:var(--f-mono);font-size:12.5px;color:var(--text);text-align:right;min-width:0;word-break:keep-all}
+.ed-facts dd small{font-family:var(--f-ui);color:var(--dim);font-size:11.5px}
+.ed-hint{margin:8px 0 0;font-size:12px;color:var(--faint);line-height:1.5}
+.ed-vel{display:grid;grid-template-columns:auto minmax(0,1fr) 64px;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--dim)}
+.ed-vel input[type=range]{width:100%;min-width:0;accent-color:var(--spot)}
+.ed-vel .inp{height:30px;font-family:var(--f-mono);font-size:12.5px;padding:0 6px}
+.ed-confirm{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:rgba(5,4,16,.62);backdrop-filter:blur(3px)}
+.ed-confirm-card{width:min(380px,calc(100% - 32px));background:var(--stage);border:1px solid var(--rim-hi);border-radius:14px;padding:20px;box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
+.ed-confirm-card b{display:block;font-size:16px;margin-bottom:6px}
+.ed-confirm-card p{margin:0 0 16px;color:var(--dim);font-size:13.5px}
+.ed-confirm-btns{display:flex;flex-wrap:wrap;gap:8px}
+.ed-confirm-btns .btn{flex:1 1 auto}
+.ed-bar .ed-phone{display:none}
+/* home: 편집 next to 무대 시작 */
+.card-actions{display:flex;gap:6px;margin-top:auto}
+.card-actions .btn.cta{flex:1}
+.card-actions a.btn{text-decoration:none}
+@media (max-width:760px){
+  .ed-bar{padding:6px 8px;gap:5px 6px}
+  .ed-bar.sub{padding-bottom:6px}
+  .ed-sep,.ed-kbd,.ed-lbl{display:none}
+  .ed-bar .ed-zoom{display:none}
+  .ed-bar .ed-title{width:auto;flex:1 1 120px;min-width:100px}
+  .ed-bar .ed-phone{display:inline-flex}
+  .ed-side{position:absolute;left:0;right:0;bottom:0;width:auto;max-height:62%;border-left:0;border-top:1px solid var(--rim-hi);border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .25s;z-index:6;box-shadow:0 -20px 50px rgba(0,0,0,.55);padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  .ed-side.open{transform:none}
+  .ed-side-head{display:flex}
+  .ed-vol input{width:64px}
+}
