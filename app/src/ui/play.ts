@@ -8,6 +8,7 @@
  * pause menu. While a run is on, the app chrome steps aside (`.app.focus`).
  */
 import { synth } from '../audio/synth';
+import { AudioTrack } from '../audio/track';
 import type { Chart } from '../core/chart';
 import { Session, type JudgeEvent, type Judgment, type SessionNote } from '../core/engine';
 import type { InputHub, NoteInput } from '../input/hub';
@@ -15,6 +16,7 @@ import { Highway } from '../render/highway';
 import { LANE_HUE, fitKeyRange } from '../render/lanes';
 import { SheetView } from '../render/sheet';
 import { beatAt, hasPickup } from '../render/sheet-map';
+import { getAudio } from '../state/audio-store';
 import { getSong, songs, type LibrarySong } from '../state/library';
 import { getBest, saveLastResult, submitBest, type PlanItem, type ResultData } from '../state/records';
 import { HANDS_KO, settings, updateSettings, type Settings } from '../state/settings';
@@ -91,6 +93,12 @@ export class PlayScreen {
   private wantFs = false;
   private measTxt = '';
   private hintTxt = '';
+  /** 원곡 소리: the chart's recording, decoded once per song. */
+  private track: AudioTrack | null = null;
+  private trackFor: string | null = null;
+  private trackMissing = false;
+  private trackLoads = 0;
+  private lastDriftCheck = 0;
 
   constructor(root: HTMLElement, deps: PlayDeps) {
     this.root = root;
@@ -105,7 +113,8 @@ export class PlayScreen {
       'hudCounts', 'scorePanel', 'sheetWrap', 'sheetHost', 'stage', 'hw', 'combo', 'comboN', 'judge', 'fs', 'big', 'whint', 'keysWrap', 'keys',
       'ready', 'btnFs', 'rdTitle', 'rdComp', 'rdFacts', 'rdBest', 'rdDev', 'btnStart', 'btnStartT', 'btnFresh', 'rdHint', 'waitNote', 'abRow',
       'loopA', 'loopB', 'more', 'moreSum', 'optMetro', 'optAuto', 'optKeyStart', 'optSoundKeys', 'optSoundMidi', 'offset', 'offsetVal',
-      'pmenu', 'pmAlert', 'pmSub', 'pmAcc', 'pmCombo', 'pmScore', 'pmCounts', 'coachLive', 'pmResume', 'pmRestart', 'pmSettings', 'pmExit', 'announce'];
+      'pmenu', 'pmAlert', 'pmSub', 'pmAcc', 'pmCombo', 'pmScore', 'pmCounts', 'coachLive', 'pmResume', 'pmRestart', 'pmSettings', 'pmExit', 'announce',
+      'btRow', 'optBacking', 'btGain', 'btGainVal', 'btNote'];
     this.el = Object.fromEntries(ids.map((id) => [id, $('#' + id, this.root)]));
     this.hw = new Highway(this.el.hw as HTMLCanvasElement);
     this.sheet = new SheetView(this.el.sheetHost, { scroller: this.el.sheetWrap, zoomFor: (w) => this.sheetZoom(w) });
@@ -217,6 +226,7 @@ export class PlayScreen {
   pause(reason: PauseReason = 'user'): void {
     if (!isRunning(this.ps.phase)) return;
     this.clock.pause();
+    this.stopTrack();
     this.resumeSt = null;
     this.releaseAll();
     this.pauseReason = reason;
@@ -240,6 +250,7 @@ export class PlayScreen {
     const d = this.clock.resume();
     if (this.finishAt) this.finishAt += d;
     if (this.waiting) this.waitSince = performance.now();
+    else this.syncAudio();
   }
 
   /** 설정 바꾸기: back to the ready card, the paused run kept aside. */
@@ -274,6 +285,7 @@ export class PlayScreen {
     this.song = song;
     this.chart = chart;
     this.pickup = hasPickup(chart);
+    void this.loadTrack(song.id, chart);
     const bars = chart.measures.length;
     const lp = settings.loop;
     const from = clamp(lp.from, 0, bars - 1);
@@ -330,6 +342,7 @@ export class PlayScreen {
   startAttract(fromTop: boolean): void {
     if (!this.chart) return;
     this.mode = 'attract';
+    this.stopTrack();
     this.finishAt = 0;
     this.waiting = false;
     this.resumeSt = null;
@@ -408,6 +421,7 @@ export class PlayScreen {
     if (!this.deps.isActive()) location.hash = '#play';
     this.ps = nextPhase(isRunning(this.ps.phase) ? READY : this.ps, 'start');
     this.renderPhase();
+    this.syncAudio();
     this.afterStart();
     this.enterFs();
   }
@@ -456,6 +470,80 @@ export class PlayScreen {
       this.startAttract(true);
       if (dropped) toast('연주 설정이 바뀌어서 처음부터 시작해요.');
     } else this.syncUI();
+  }
+
+  /* ------------------------------------------------------------ backing track (원곡 소리) */
+
+  /** Fetch and decode the chart's recording from the audio store; silently absent when missing. */
+  private async loadTrack(songId: string, chart: Chart): Promise<void> {
+    const n = ++this.trackLoads;
+    this.track?.dispose();
+    this.track = null;
+    this.trackFor = null;
+    this.trackMissing = false;
+    const a = chart.audio;
+    if (!a) {
+      if (this.ps.phase === 'ready') this.syncUI();
+      return;
+    }
+    try {
+      const blob = await getAudio(a.id);
+      if (n !== this.trackLoads) return;
+      if (!blob) {
+        this.trackMissing = true;
+      } else {
+        const track = await AudioTrack.fromBlob(blob);
+        if (n !== this.trackLoads) return void track.dispose();
+        this.track = track;
+        this.trackFor = songId;
+        if (this.mode === 'play' && isRunning(this.ps.phase) && !this.clock.paused && !this.waiting) this.syncAudio();
+      }
+    } catch (e) {
+      console.warn('backing track unavailable', e);
+      if (n === this.trackLoads) this.trackMissing = true;
+    }
+    if (n === this.trackLoads && this.ps.phase === 'ready') this.syncUI();
+  }
+
+  /** Audio position (ms into the recording) that should be sounding at song time `t`. */
+  private audioMsAt(t: number): number {
+    return t * settings.rate + (this.chart?.audio?.offsetMs ?? 0);
+  }
+
+  /**
+   * (Re)start the recording so it lines up with the song clock right now. During the
+   * count-in the position is before chart 0, so the recording's lead-in plays (or, when
+   * the file has nothing there, it is scheduled to start exactly on the first beat).
+   * Only in play mode; the attract demo is silent. The input latency offset is not
+   * applied here: it corrects key presses, not the music.
+   */
+  private syncAudio(): void {
+    const tr = this.track;
+    if (!tr) return;
+    const a = this.chart?.audio;
+    if (!a || this.mode !== 'play' || !settings.backing || this.clock.paused || this.waiting || !isRunning(this.ps.phase) || this.trackFor !== this.song?.id) {
+      this.stopTrack();
+      return;
+    }
+    const pos = this.audioMsAt(this.clock.time());
+    if (pos >= tr.durationMs) return tr.stop();
+    tr.play(pos, settings.rate, settings.backingGain);
+    this.root.dataset.backing = 'on';
+  }
+
+  private stopTrack(): void {
+    this.track?.stop();
+    if (this.root.dataset.backing === 'on') this.root.dataset.backing = 'off';
+  }
+
+  /** Web Audio and performance.now() tick apart slowly; re-seat the recording when it strays. */
+  private checkDrift(t: number): void {
+    const tr = this.track;
+    if (!tr || !tr.playing || this.mode !== 'play' || this.clock.paused || this.waiting) return;
+    const pos = tr.position();
+    if (pos === null) return;
+    const want = this.audioMsAt(t);
+    if (Math.abs(pos - want) > 80) this.syncAudio();
   }
 
   /* ------------------------------------------------------------ input */
@@ -590,6 +678,10 @@ export class PlayScreen {
     if (!this.clock.paused) this.step(now);
     const t = this.clock.time(now);
     if (this.ps.phase === 'countin' && !this.clock.paused && t >= s.startT) this.setPhase('go');
+    if (now - this.lastDriftCheck > 1000) {
+      this.lastDriftCheck = now;
+      this.checkDrift(t);
+    }
     const meters = this.metersOn();
     if (settings.view !== 'sheet') {
       this.hw.render({
@@ -629,11 +721,13 @@ export class PlayScreen {
         if (!this.waiting) {
           this.waiting = true;
           this.waitSince = now;
+          this.stopTrack(); // 대기 모드: the music waits, so does the recording
           this.markNext();
         }
       } else if (this.waiting) {
         this.waiting = false;
         this.setHint('');
+        this.syncAudio();
       }
     }
     if (this.mode === 'play') this.beatsUpTo(t, s);
@@ -1036,11 +1130,24 @@ export class PlayScreen {
     chk('optKeyStart', settings.keyStart);
     chk('optSoundKeys', settings.soundKeys);
     chk('optSoundMidi', settings.soundMidi);
+    const hasAudio = !!this.chart?.audio;
+    this.el.btRow.hidden = !hasAudio;
+    chk('optBacking', settings.backing);
+    (this.el.btGain as HTMLInputElement).value = String(Math.round(settings.backingGain * 100));
+    this.el.btGainVal.textContent = Math.round(settings.backingGain * 100) + '%';
+    if (hasAudio) {
+      this.el.btNote.textContent = this.trackMissing
+        ? '이 기기에서 녹음 파일을 찾지 못했어요 (다른 기기에서 만든 곡이거나 저장 공간이 지워졌어요). 채보만 연주해요.'
+        : this.track
+          ? '카운트인 동안 녹음의 앞부분이 먼저 들리고, 첫 박에 맞춰 노트가 내려와요. 템포를 낮추면 녹음도 느려져요. 대기 모드에서는 기다리는 동안 소리도 멈춰요.'
+          : '녹음을 불러오는 중…';
+    }
     (this.el.loopA as HTMLSelectElement).value = String(lp.from);
     (this.el.loopB as HTMLSelectElement).value = String(lp.to);
     (this.el.offset as HTMLInputElement).value = String(settings.offset);
     this.el.offsetVal.textContent = signed(settings.offset) + ' ms';
     this.el.moreSum.textContent = [
+      hasAudio && settings.backing && !this.trackMissing ? '원곡 소리' : null,
       settings.metro ? '메트로놈' : null,
       settings.autoplay ? '자동 연주' : null,
       settings.offset ? `보정 ${signed(settings.offset)}ms` : null,
@@ -1141,6 +1248,16 @@ export class PlayScreen {
     });
     box('optSoundKeys').addEventListener('change', (e) => this.applySettings({ soundKeys: (e.target as HTMLInputElement).checked }));
     box('optSoundMidi').addEventListener('change', (e) => this.applySettings({ soundMidi: (e.target as HTMLInputElement).checked }));
+    box('optBacking').addEventListener('change', (e) => {
+      this.applySettings({ backing: (e.target as HTMLInputElement).checked });
+      this.syncAudio();
+    });
+    box('btGain').addEventListener('input', (e) => {
+      updateSettings({ backingGain: Number((e.target as HTMLInputElement).value) / 100 });
+      this.el.btGainVal.textContent = Math.round(settings.backingGain * 100) + '%';
+      this.track?.setGain(settings.backingGain);
+    });
+    box('btGain').addEventListener('change', () => this.syncUI());
     box('offset').addEventListener('input', (e) => {
       updateSettings({ offset: Number((e.target as HTMLInputElement).value) });
       this.el.offsetVal.textContent = signed(settings.offset) + ' ms';

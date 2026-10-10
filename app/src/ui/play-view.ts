@@ -80,6 +80,11 @@ export function playTemplate(): string {
             <label class="switch" title="준비 화면에서 MIDI 건반을 아무거나 누르면 시작해요"><input type="checkbox" id="optKeyStart">건반을 누르면 시작</label>
             <label class="switch" title="PC 키보드·화면 건반을 칠 때 소리를 내요"><input type="checkbox" id="optSoundKeys">건반 소리 · PC/화면</label>
             <label class="switch" title="전자피아노 스피커를 끈 경우에 켜요"><input type="checkbox" id="optSoundMidi">건반 소리 · MIDI</label>
+            <div class="bt-row" id="btRow" style="grid-column:1/-1;display:grid;gap:10px" hidden>
+              <label class="switch" title="채보의 원본 녹음을 연주에 맞춰 함께 들려줘요"><input type="checkbox" id="optBacking">원곡 소리 · 녹음 반주</label>
+              <label class="ctl offset" for="btGain"><span>원곡 볼륨</span><input type="range" id="btGain" min="0" max="100" step="5" value="80"><output id="btGainVal" for="btGain">80%</output></label>
+              <p class="dr-note" id="btNote">카운트인 동안 녹음의 앞부분이 먼저 들리고, 첫 박에 맞춰 노트가 내려와요. 대기 모드에서는 기다리는 동안 소리도 멈춰요.</p>
+            </div>
             ${group('HUD', seg('연주 중 HUD', 'hud', [['focus', '집중'], ['detail', '상세']]) + '<span class="og-n">상세: 정확도·판정 수·LIFE를 옆에 계속 보여요</span>')}
             <label class="ctl offset" for="offset"><span>지연 보정</span><input type="range" id="offset" min="${OFFSET_MIN}" max="${OFFSET_MAX}" step="1" value="0"><output id="offsetVal" for="offset">±0 ms</output></label>
             <p class="dr-note">건반이나 스피커가 늦게 반응하면 + 쪽으로 옮겨요. <a href="#device">건반 연결 화면</a>에서 박자에 맞춰 두드려 자동으로 맞출 수 있어요.</p>

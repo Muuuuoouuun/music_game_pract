@@ -4,10 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-model.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-model.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "pretest": "node scripts/copy-model.mjs",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -17,6 +20,8 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@spotify/basic-pitch": "^1.0.1",
+    "@tensorflow/tfjs": "^3.21.0",
     "@tonejs/midi": "^2.0.28",
     "fflate": "^0.8.3",
     "opensheetmusicdisplay": "^2.2.0"

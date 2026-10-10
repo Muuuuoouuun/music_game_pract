@@ -24,6 +24,10 @@ export interface Settings {
   /** 건반을 누르면 시작: a MIDI key press on the ready screen starts the run. */
   keyStart: boolean;
   hud: HudMode;
+  /** 원곡 소리: play the chart's attached recording in sync with the run. */
+  backing: boolean;
+  /** 0–1 volume of the backing track. */
+  backingGain: number;
   songId: string | null;
 }
 
@@ -43,6 +47,8 @@ const DEFAULTS: Settings = {
   autoplay: false,
   keyStart: true,
   hud: 'focus',
+  backing: true,
+  backingGain: 0.8,
   songId: null,
 };
 
@@ -54,6 +60,8 @@ function sanitize(s: Partial<Settings>): Settings {
   if (v.hud !== 'detail') v.hud = 'focus';
   v.keyStart = v.keyStart !== false;
   v.offset = Math.max(OFFSET_MIN, Math.min(OFFSET_MAX, Math.round(Number(v.offset) || 0)));
+  v.backing = v.backing !== false;
+  v.backingGain = Number.isFinite(Number(v.backingGain)) ? Math.max(0, Math.min(1, Number(v.backingGain))) : 0.8;
   v.autoplay = false; // never resume into auto-play
   return v;
 }
